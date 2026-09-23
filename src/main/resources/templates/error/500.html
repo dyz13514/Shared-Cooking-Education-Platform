@@ -1,0 +1,12 @@
+<!DOCTYPE html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout/base :: layout('500 - 服务异常', ~{::content})}">
+<body>
+<div th:fragment="content" class="bg-white border rounded-4 shadow-sm p-4">
+    <h1 class="h4 mb-2">500 服务异常</h1>
+    <p class="text-muted mb-3">服务器处理请求时发生异常，请稍后再试或查看控制台日志。</p>
+    <a class="btn btn-outline-secondary" href="/">返回首页</a>
+</div>
+</body>
+</html>
+

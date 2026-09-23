@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout/base :: layout(${pageTitle}, ~{::content})}">
+<body>
+<div th:fragment="content">
+    <section class="page-hero mb-3">
+        <div class="d-flex justify-content-between align-items-start gap-3 flex-wrap">
+            <div>
+                <div class="page-kicker">教师课程中心</div>
+                <h1 class="page-title mb-1">新建课程</h1>
+            </div>
+            <a class="btn btn-outline-secondary rounded-pill px-4" href="/teacher/courses">返回课程中心</a>
+        </div>
+    </section>
+
+    <div class="soft-card mt-3">
+        <form method="post" th:action="@{/teacher/courses}" th:object="${course}" enctype="multipart/form-data">
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <label class="form-label text-muted small">课程名称 <span class="text-danger">*</span></label>
+                    <input class="form-control" th:field="*{title}" required maxlength="100" placeholder="例如：中式烹调基础">
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label text-muted small">课程大类</label>
+                    <select class="form-select" th:field="*{category}">
+                        <option value="中餐">中餐</option>
+                        <option value="西餐">西餐</option>
+                        <option value="日料">日料</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label text-muted small">封面图片上传</label>
+                    <input class="form-control" type="file" name="coverFile" accept="image/jpeg,image/png,image/webp">
+                </div>
+                <div class="col-12">
+                    <label class="form-label text-muted small">封面图片地址（可选，上传后可不填）</label>
+                    <input class="form-control" th:field="*{coverImage}" placeholder="或直接粘贴图片 URL">
+                </div>
+                <div class="col-md-12">
+                    <label class="form-label text-muted small">课程简介</label>
+                    <textarea class="form-control" rows="5" th:field="*{description}" placeholder="介绍该课程的学习目标与内容..."></textarea>
+                </div>
+            </div>
+            <div class="d-flex justify-content-end gap-2 mt-4">
+                <a class="btn btn-outline-secondary rounded-pill px-4" href="/teacher/courses">取消</a>
+                <button class="btn btn-tp-primary rounded-pill px-5" type="submit">立即发布</button>
+            </div>
+        </form>
+    </div>
+</div>
+</body>
+</html>

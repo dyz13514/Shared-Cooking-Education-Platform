@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout/base :: layout(${pageTitle}, ~{::content})}">
+<body>
+<div th:fragment="content">
+    <div class="mb-3">
+        <a class="btn btn-outline-secondary btn-sm" href="/announcements">返回列表</a>
+    </div>
+
+    <div class="bg-white border rounded-4 shadow-sm p-3 p-md-4">
+        <h1 class="h4 mb-2" th:text="${a.title}">公告标题</h1>
+        <div class="text-muted small mb-4">
+            <span class="badge text-bg-secondary me-2" th:if="${a.category}" th:text="${a.category}">分类</span>
+            <span th:text="${#temporals.format(a.createdAt, 'yyyy-MM-dd HH:mm')}">时间</span>
+        </div>
+        <div class="border rounded-3 p-3 bg-light" style="white-space: pre-wrap;" th:text="${a.content}">内容</div>
+    </div>
+</div>
+</body>
+</html>

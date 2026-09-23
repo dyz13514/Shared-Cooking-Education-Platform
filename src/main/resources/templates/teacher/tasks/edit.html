@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout/base :: layout(${pageTitle}, ~{::content})}">
+<body>
+<div th:fragment="content" class="row justify-content-center">
+    <div class="col-lg-9">
+        <div class="d-flex align-items-center justify-content-between mb-3">
+            <div>
+                <h1 class="h4 mb-1">编辑任务</h1>
+                <div class="text-muted small d-flex flex-wrap gap-2 align-items-center">
+                    <span class="badge" th:classappend="${task.status == T(com.example.teachingplatform.task.model.LearningTask.Status).PUBLISHED ? ' text-bg-success' : (task.status == T(com.example.teachingplatform.task.model.LearningTask.Status).CLOSED ? ' text-bg-dark' : ' text-bg-warning')}" th:text="${task.status == T(com.example.teachingplatform.task.model.LearningTask.Status).PUBLISHED ? '已发布' : (task.status == T(com.example.teachingplatform.task.model.LearningTask.Status).CLOSED ? '已结束' : '草稿')}">DRAFT</span>
+                    <span class="badge text-bg-light border" th:if="${task.courseTitle != null}" th:text="${'课程：' + task.courseTitle}">课程</span>
+                    <span class="badge text-bg-light border" th:if="${task.lessonTitle != null}" th:text="${'课时：' + task.lessonTitle}">课时</span>
+                    <span class="badge text-bg-light border" th:text="${task.phase == null ? '课中' : (task.phase == T(com.example.teachingplatform.task.model.LearningTask.Phase).PRE_CLASS ? '课前' : (task.phase == T(com.example.teachingplatform.task.model.LearningTask.Phase).IN_CLASS ? '课中' : '课后'))}">phase</span>
+                    <span th:text="'ID: ' + ${task.id}">ID</span>
+                </div>
+            </div>
+            <div class="d-flex gap-2">
+                <a class="btn btn-outline-secondary btn-sm" href="/teacher/tasks">返回</a>
+                <form method="post" th:action="@{/teacher/tasks/{id}/draft(id=${task.id})}" th:if="${task.status != T(com.example.teachingplatform.task.model.LearningTask.Status).DRAFT}">
+                    <button class="btn btn-outline-warning btn-sm" type="submit">切为草稿</button>
+                </form>
+                <form method="post" th:action="@{/teacher/tasks/{id}/publish(id=${task.id})}" th:if="${task.status != T(com.example.teachingplatform.task.model.LearningTask.Status).PUBLISHED}">
+                    <button class="btn btn-outline-primary btn-sm" type="submit">发布</button>
+                </form>
+                <form method="post" th:action="@{/teacher/tasks/{id}/finish(id=${task.id})}" th:if="${task.status != T(com.example.teachingplatform.task.model.LearningTask.Status).CLOSED}">
+                    <button class="btn btn-outline-dark btn-sm" type="submit" onclick="return confirm('确定结束这个任务吗？结束后学生将不能再提交。');">结束</button>
+                </form>
+                <form method="post" th:action="@{/teacher/tasks/{id}/delete(id=${task.id})}" class="d-inline">
+                    <button class="btn btn-outline-danger btn-sm" type="submit" onclick="return confirm('确定删除这个任务吗？');">删除</button>
+                </form>
+            </div>
+        </div>
+
+        <div class="bg-white border rounded-4 shadow-sm p-3 p-md-4">
+            <form method="post" th:action="@{/teacher/tasks/{id}(id=${task.id})}" th:object="${form}">
+                <div class="mb-3">
+                    <label class="form-label">标题</label>
+                    <input class="form-control" th:field="*{title}" maxlength="200">
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">任务板块</label>
+                    <select class="form-select" th:field="*{phase}">
+                        <option value="PRE_CLASS">课前</option>
+                        <option value="IN_CLASS">课中</option>
+                        <option value="POST_CLASS">课后</option>
+                    </select>
+                </div>
+                <div class="row g-3 mb-3">
+                    <div class="col-md-6">
+                        <label class="form-label">所属课程</label>
+                        <select class="form-select" id="courseSelect" th:field="*{courseId}">
+                            <option value="">不绑定课程</option>
+                            <option th:each="c : ${courses}" th:value="${c.id}" th:text="${c.title}">课程</option>
+                        </select>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">所属课时</label>
+                        <select class="form-select" id="lessonSelect" th:field="*{lessonId}">
+                            <option value="">不绑定课时</option>
+                            <option th:each="l : ${lessons}" th:value="${l.id}" th:text="${'课时' + l.sortOrder + '：' + l.title}">课时</option>
+                        </select>
+                        <div class="form-text">更换课程后，课时会自动切换为该课程下的课时；也可以只绑定课程不绑定课时。</div>
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">描述（可选）</label>
+                    <textarea class="form-control" th:field="*{description}" rows="4" maxlength="5000"></textarea>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">要求/评分维度（可选）</label>
+                    <textarea class="form-control" th:field="*{requirementsText}" rows="6" maxlength="5000"></textarea>
+                </div>
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <label class="form-label">提交类型要求</label>
+                        <select class="form-select" th:field="*{submissionRequirement}">
+                            <option th:each="r : ${requirements}" th:value="${r}" th:text="${r.name() == 'TEXT' ? '文字心得' : r.name() == 'IMAGE' ? '图片' : r.name() == 'VIDEO' ? '视频' : r.name() == 'IMAGE_TEXT' ? '图片 + 文字' : r.name() == 'VIDEO_TEXT' ? '视频 + 文字' : r.name() == 'IMAGE_VIDEO_TEXT' ? '图片 + 视频 + 文字' : r.name()}"></option>
+                        </select>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">截止时间（可选）</label>
+                        <input class="form-control" type="datetime-local" th:field="*{deadline}">
+                    </div>
+                </div>
+                <div class="mt-4">
+                    <button class="btn btn-primary" type="submit">保存</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    <script th:inline="javascript">
+        (function () {
+            const courseSelect = document.getElementById('courseSelect');
+            const lessonSelect = document.getElementById('lessonSelect');
+            const lessonOptions = /*[[${lessonOptionsJson}]]*/ {};
+            if (!courseSelect || !lessonSelect) return;
+
+            function renderLessons(courseId, selectedLessonId) {
+                lessonSelect.innerHTML = '<option value="">不绑定课时</option>';
+                const lessons = lessonOptions[String(courseId)] || [];
+                lessons.forEach(function (lesson) {
+                    const option = document.createElement('option');
+                    option.value = lesson.id;
+                    option.textContent = lesson.title;
+                    if (selectedLessonId && String(selectedLessonId) === String(lesson.id)) {
+                        option.selected = true;
+                    }
+                    lessonSelect.appendChild(option);
+                });
+            }
+
+            courseSelect.addEventListener('change', function () {
+                renderLessons(courseSelect.value, '');
+            });
+        })();
+    </script>
+</div>
+</body>
+</html>

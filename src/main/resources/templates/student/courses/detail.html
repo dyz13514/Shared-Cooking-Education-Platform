@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout/base :: layout(${pageTitle}, ~{::content})}">
+<body>
+<div th:fragment="content">
+    <section class="page-hero mb-3">
+        <div class="d-flex justify-content-between align-items-start gap-3 flex-wrap">
+            <div>
+                <div class="page-kicker">课程详情</div>
+                <h1 class="page-title mb-1" th:text="${course.title}">课程标题</h1>
+            </div>
+            <span class="pill-status"><i class="bi bi-palette-fill text-primary"></i><span th:text="${course.category}">课程分类</span></span>
+        </div>
+    </section>
+
+
+    <section class="soft-card mt-3">
+        <h3>课程简介</h3>
+        <p class="text-muted mb-0" style="white-space: pre-line;" th:text="${course.description}">课程简介</p>
+    </section>
+
+    <section class="soft-card mt-3" th:if="${lessons != null and !lessons.isEmpty()}">
+        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+            <div>
+                <h3 class="mb-0">课程进度</h3>
+            </div>
+            <span class="text-muted small" th:text="${lessons.size() + ' 个课时'}">0 个课时</span>
+        </div>
+        <div style="display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));">
+            <div th:each="l,stat : ${lessons}"
+                 style="position:relative;border-radius:18px;padding:14px 12px 12px;background:linear-gradient(180deg,#ffffff 0%,#f8fafc 100%);border:1px solid rgba(148,163,184,.22);box-shadow:0 8px 24px rgba(15,23,42,.04);overflow:hidden;">
+                <div style="position:absolute;left:0;top:0;height:4px;width:100%;" th:styleappend="${l.lesson.status == 'DOING' ? 'background:#38bdf8;' : (l.lesson.status == 'COMPLETED' ? 'background:#22c55e;' : 'background:#94a3b8;')}"></div>
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <span class="badge rounded-pill" th:text="${stat.index + 1}" style="background:#eff6ff;color:#1d4ed8;">1</span>
+                    <span class="badge rounded-pill" th:classappend="${l.lesson.status == 'DOING' ? ' bg-info text-white' : (l.lesson.status == 'COMPLETED' ? ' bg-success text-white' : ' bg-secondary text-white')}" th:text="${l.lesson.status == 'DOING' ? '进行中' : (l.lesson.status == 'COMPLETED' ? '已完成' : '未开始')}">状态</span>
+                </div>
+                <div class="fw-semibold" style="font-size:14px;line-height:1.35;" th:text="${l.lesson.title}">课时标题</div>
+            </div>
+        </div>
+    </section>
+
+    <section class="soft-card mt-3">
+        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+            <h3 class="mb-0">课程任务</h3>
+        </div>
+        <div class="row g-3" th:if="${lessons != null}">
+            <div class="col-12" th:each="l : ${lessons}">
+                <div class="border rounded-4 p-3 p-md-4 mb-3 bg-white lesson-card">
+                    <div class="d-flex justify-content-between align-items-start gap-2 mb-2">
+                        <div>
+                            <div class="fw-semibold text-muted small" th:text="'课时 ' + ${l.lesson.sortOrder + 1}">课时</div>
+                            <h4 class="mb-1" th:text="${l.lesson.title}">标题</h4>
+                            <div class="small text-muted" th:text="${l.lesson.dishName}">菜品</div>
+                        </div>
+                        <span class="badge rounded-pill" th:classappend="${l.lesson.status == 'DOING' ? ' bg-info text-white' : (l.lesson.status == 'COMPLETED' ? ' bg-success text-white' : ' bg-secondary text-white')}" th:text="${l.lesson.status == 'COMPLETED' ? '已完成' : (l.lesson.status == 'DOING' ? '进行中' : '未开始')}">状态</span>
+                    </div>
+                    <p class="small mb-3 text-muted" th:text="${l.lesson.summary}">summary</p>
+                    <div class="row g-2">
+                        <div class="col-md-4" th:each="s : ${l.steps}">
+                            <a class="text-decoration-none" th:href="@{/student/steps/{id}(id=${s.id})}">
+                                <div class="border rounded-4 p-3 h-100 bg-light step-chip step-chip-white">
+                                    <div class="d-flex justify-content-between align-items-center mb-1">
+                                        <div class="fw-semibold text-dark" th:text="${s.title}">step</div>
+                                    </div>
+                                    <div class="small text-muted" th:text="${s.description}">desc</div>
+                                </div>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+</div>
+</body>
+</html>

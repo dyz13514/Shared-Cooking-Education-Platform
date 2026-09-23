@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout/base :: layout(${pageTitle}, ~{::content})}">
+<body>
+<div th:fragment="content">
+    <section class="page-hero mb-3">
+        <div class="d-flex flex-wrap justify-content-between align-items-start gap-3">
+            <div>
+                <div class="page-kicker">任务中心</div>
+                <h1 class="page-title mb-1">任务中心</h1>
+                <p class="page-subtitle mb-0" th:if="${currentProgress != null}">
+                    当前：<strong th:text="${currentContextLabel}">课程 · 课时 · 状态</strong>
+                </p>
+                <p class="page-subtitle mb-0" th:if="${currentProgress == null}">请先在课程中心开始一门课程，任务中心会自动聚焦当前课程。</p>
+            </div>
+        </div>
+    </section>
+
+    <section class="soft-card mb-3" th:if="${activeCourseProgressList != null and !activeCourseProgressList.isEmpty()}">
+        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+            <div>
+                <h3 class="mb-0">当前课程上下文</h3>
+            </div>
+        </div>
+        <div class="d-flex flex-column gap-2">
+            <a class="border rounded-4 bg-white p-3 d-flex justify-content-between align-items-center gap-3 text-decoration-none text-dark ai-highlight-card" th:each="p : ${activeCourseProgressList}" th:href="@{/teacher/courses/{id}(id=${p.courseId})}">
+                <div>
+                    <div class="fw-semibold" th:text="${p.courseTitle != null ? p.courseTitle : '进行中课程'}">课程标题</div>
+                    <div class="text-muted small" th:text="${currentContextLabel}">课程 · 课时 · 状态</div>
+                </div>
+                <span class="btn btn-sm btn-outline-primary rounded-pill">进入课程详情</span>
+            </a>
+        </div>
+    </section>
+
+    <section class="soft-card mb-3">
+        <div class="d-flex gap-2 flex-wrap mb-3">
+            <a class="btn rounded-pill px-4" th:classappend="${showAll ? ' btn-outline-primary' : ' btn-tp-primary'}" href="/teacher/tasks">回到当前</a>
+            <a class="btn rounded-pill px-4" th:classappend="${showAll ? ' btn-tp-primary' : ' btn-outline-secondary'}" th:href="@{/teacher/tasks(phase=all,courseId=0,lessonId=0)}">呈现全部</a>
+        </div>
+        <form method="get" action="/teacher/tasks" class="row g-2 align-items-end mb-3 task-filter-form" th:if="${showAll}">
+            <input type="hidden" name="phase" th:value="${selectedPhaseKey}">
+            <div class="col-md-4">
+                <label class="form-label text-muted small">课程范围</label>
+                <select class="form-select js-course-filter" name="courseId">
+                    <option value="0" th:selected="${courseId == 0}">全部课程</option>
+                    <option th:each="c : ${courses}" th:value="${c.id}" th:text="${c.title}" th:selected="${courseId == c.id}">课程</option>
+                </select>
+            </div>
+            <div class="col-md-4">
+                <label class="form-label text-muted small">课时范围</label>
+                <select class="form-select js-lesson-filter" name="lessonId" th:attr="data-selected=${lessonId}">
+                    <option value="0" th:selected="${lessonId == 0}">全部课时</option>
+                    <option th:each="l : ${lessons}" th:value="${l.id}" th:text="${'课时' + l.sortOrder + '：' + l.title}" th:selected="${lessonId == l.id}">课时</option>
+                </select>
+            </div>
+            <div class="col-md-4 d-flex gap-2">
+                <button class="btn btn-outline-primary rounded-pill px-4" type="submit">筛选</button>
+                <a class="btn btn-outline-secondary rounded-pill px-4" href="/teacher/tasks">回到当前课程</a>
+            </div>
+        </form>
+        <div class="row g-3">
+            <div class="col-md-3">
+                <a class="text-decoration-none" th:href="@{/teacher/tasks(phase=all,courseId=${courseId},lessonId=${lessonId})}">
+                    <div class="metric-card h-100 phase-card">
+                        <div class="metric-label">全部</div>
+                        <div class="metric-value" style="font-size: 22px;">查看全部</div>
+                        <div class="text-muted small">当前课程全部任务</div>
+                    </div>
+                </a>
+            </div>
+            <div class="col-md-3">
+                <a class="text-decoration-none" th:href="@{/teacher/tasks(phase=PRE_CLASS,courseId=${courseId},lessonId=${lessonId})}">
+                    <div class="metric-card h-100 phase-card phase-pre">
+                        <div class="metric-label">课前</div>
+                        <div class="metric-value" style="font-size: 22px;">筛选课前</div>
+                        <div class="text-muted small">查看和管理课前任务</div>
+                    </div>
+                </a>
+            </div>
+            <div class="col-md-3">
+                <a class="text-decoration-none" th:href="@{/teacher/tasks(phase=IN_CLASS,courseId=${courseId},lessonId=${lessonId})}">
+                    <div class="metric-card h-100 phase-card phase-class">
+                        <div class="metric-label">课中</div>
+                        <div class="metric-value" style="font-size: 22px;">筛选课中</div>
+                        <div class="text-muted small">查看课中任务</div>
+                    </div>
+                </a>
+            </div>
+            <div class="col-md-3">
+                <a class="text-decoration-none" th:href="@{/teacher/tasks(phase=POST_CLASS,courseId=${courseId},lessonId=${lessonId})}">
+                    <div class="metric-card h-100 phase-card phase-post">
+                        <div class="metric-label">课后</div>
+                        <div class="metric-value" style="font-size: 22px;">筛选课后</div>
+                        <div class="text-muted small">查看和管理课后任务</div>
+                    </div>
+                </a>
+            </div>
+        </div>
+    </section>
+
+    <section class="soft-card">
+        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+            <div>
+                <h3 class="mb-0" th:text="${selectedPhaseLabel != null ? selectedPhaseLabel : '任务列表'}">任务列表</h3>
+            </div>
+            <div class="d-flex gap-2 flex-wrap align-items-center">
+                <a class="btn btn-tp-primary rounded-pill" th:href="@{/teacher/tasks/new(phase=${selectedPhaseKey != null and selectedPhaseKey != 'all' ? selectedPhaseKey : 'PRE_CLASS'})}">新建任务</a>
+            </div>
+        </div>
+
+        <div th:if="${page.totalElements == 0}" class="text-muted">暂无任务</div>
+
+        <div class="row g-3" th:if="${page.totalElements > 0}">
+            <div class="col-12" th:each="t : ${page.content}">
+                <div class="border rounded-4 p-3 p-md-4 d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 course-card">
+                    <div>
+                        <div class="d-flex flex-wrap gap-2 align-items-center mb-2">
+                            <span class="badge bg-tp-soft text-tp-primary" th:text="${t.phase != null ? (t.phase == T(com.example.teachingplatform.task.model.LearningTask.Phase).PRE_CLASS ? '课前' : (t.phase == T(com.example.teachingplatform.task.model.LearningTask.Phase).IN_CLASS ? '课中' : '课后')) : '课中'}">phase</span>
+                            <span class="badge" th:classappend="${t.status == T(com.example.teachingplatform.task.model.LearningTask.Status).PUBLISHED ? ' text-bg-success' : (t.status == T(com.example.teachingplatform.task.model.LearningTask.Status).CLOSED ? ' text-bg-dark' : ' text-bg-warning')}" th:text="${t.status == T(com.example.teachingplatform.task.model.LearningTask.Status).PUBLISHED ? '已发布' : (t.status == T(com.example.teachingplatform.task.model.LearningTask.Status).CLOSED ? '已结束' : '草稿')}">status</span>
+                            <span class="badge text-bg-light border" th:if="${t.courseTitle != null}" th:text="${'课程：' + t.courseTitle}">课程</span>
+                            <span class="badge text-bg-light border" th:if="${t.lessonTitle != null}" th:text="${'课时：' + t.lessonTitle}">课时</span>
+                            <span class="badge text-bg-light border" th:text="${t.deadline != null ? #temporals.format(t.deadline, 'yyyy-MM-dd HH:mm') : '无截止'}">deadline</span>
+                        </div>
+                        <div class="fs-5 fw-bold" th:text="${t.title}">title</div>
+                        <div class="text-muted small mt-2" th:text="${t.description}">desc</div>
+                    </div>
+                    <div class="d-flex flex-wrap gap-2">
+                        <a class="btn btn-outline-primary rounded-pill" th:href="@{/teacher/tasks/{id}/edit(id=${t.id})}">编辑</a>
+                        <form method="post" th:action="@{/teacher/tasks/{id}/draft(id=${t.id})}" class="d-inline" th:if="${t.status != T(com.example.teachingplatform.task.model.LearningTask.Status).DRAFT}">
+                            <button class="btn btn-outline-warning rounded-pill" type="submit">草稿</button>
+                        </form>
+                        <form method="post" th:action="@{/teacher/tasks/{id}/publish(id=${t.id})}" class="d-inline" th:if="${t.status != T(com.example.teachingplatform.task.model.LearningTask.Status).PUBLISHED}">
+                            <button class="btn btn-tp-primary rounded-pill" type="submit">发布</button>
+                        </form>
+                        <form method="post" th:action="@{/teacher/tasks/{id}/finish(id=${t.id})}" class="d-inline" th:if="${t.status != T(com.example.teachingplatform.task.model.LearningTask.Status).CLOSED}">
+                            <button class="btn btn-outline-dark rounded-pill" type="submit" onclick="return confirm('确定结束这个任务吗？结束后学生将不能再提交。');">结束</button>
+                        </form>
+                        <form method="post" th:action="@{/teacher/tasks/{id}/delete(id=${t.id})}" class="d-inline">
+                            <button class="btn btn-outline-danger rounded-pill" type="submit" onclick="return confirm('确定删除这个任务吗？');">删除</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <script th:inline="javascript">
+        (function () {
+            const courseSelect = document.querySelector('.js-course-filter');
+            const lessonSelect = document.querySelector('.js-lesson-filter');
+            const lessonsByCourse = /*[[${lessonOptionsJson}]]*/ '{}';
+            if (!courseSelect || !lessonSelect) return;
+            const lessonMap = JSON.parse(lessonsByCourse || '{}');
+
+            function renderLessons(keepSelected) {
+                const selectedCourseId = courseSelect.value;
+                const selectedLessonId = keepSelected ? String(lessonSelect.dataset.selected || lessonSelect.value || '0') : '0';
+                const lessons = lessonMap[selectedCourseId] || [];
+                lessonSelect.innerHTML = '<option value="0">全部课时</option>';
+                lessons.forEach(lesson => {
+                    const option = document.createElement('option');
+                    option.value = lesson.id;
+                    option.textContent = lesson.title;
+                    if (String(lesson.id) === selectedLessonId) option.selected = true;
+                    lessonSelect.appendChild(option);
+                });
+            }
+
+            courseSelect.addEventListener('change', () => {
+                lessonSelect.dataset.selected = '0';
+                renderLessons(false);
+            });
+            renderLessons(true);
+        })();
+    </script>
+</div>
+</body>
+</html>

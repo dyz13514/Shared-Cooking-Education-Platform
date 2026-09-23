@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout/base :: layout(${pageTitle}, ~{::content})}">
+<body>
+<div th:fragment="content">
+    <section class="page-hero mb-3">
+        <div class="d-flex justify-content-between align-items-start gap-3 flex-wrap">
+            <div>
+                <div class="page-kicker">课程管理</div>
+                <h1 class="page-title mb-1" th:text="${course.title}">课程标题</h1>
+            </div>
+            <div class="d-flex gap-2 flex-wrap">
+                <a class="btn btn-outline-success rounded-pill px-4" th:href="@{/teacher/courses/{id}/submissions(id=${course.id})}">查看本课程提交</a>
+                <a class="btn btn-outline-secondary rounded-pill px-4" href="/teacher/courses">返回课程中心</a>
+            </div>
+        </div>
+    </section>
+
+    <section class="soft-card mb-3">
+        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+            <div>
+                <div class="page-kicker">课程状态</div>
+                <h3 class="mb-0" th:text="${isActiveCourse ? '课程正在进行中' : '课程未开始'}">课程状态</h3>
+                <div class="text-muted small" th:text="${isActiveCourse ? '当前课程已开启，学生端会同步显示课程入口' : '点击开始课程后，学生端才会显示课程入口'}">状态说明</div>
+            </div>
+            <div class="d-flex gap-2 flex-wrap align-items-center">
+                <span class="badge rounded-pill px-3 py-2" th:if="${!isActiveCourse}" style="background:#fff;border:1px solid rgba(100,116,139,.25);color:#64748b;">未开始</span>
+                <form method="post" th:action="@{/teacher/courses/{id}/start(id=${course.id})}" th:if="${!isActiveCourse}">
+                    <button class="btn btn-tp-primary rounded-pill px-4" type="submit">开始课程</button>
+                </form>
+                <form method="post" th:action="@{/teacher/courses/{id}/stop(id=${course.id})}" th:if="${isActiveCourse}">
+                    <button class="btn btn-outline-dark rounded-pill px-4" type="submit">结束课程</button>
+                </form>
+                <span class="badge rounded-pill px-3 py-2" th:if="${isActiveCourse}" style="background:#ecfdf5;border:1px solid rgba(34,197,94,.35);color:#166534;">进行中</span>
+            </div>
+        </div>
+        <div class="mt-4" th:if="${lessons != null and !lessons.isEmpty()}">
+            <div class="d-flex justify-content-between align-items-center mb-2">
+                <div class="small text-muted">课时进度</div>
+                <div class="small text-muted" th:text="${lessons.size() + ' 个课时'}">0 个课时</div>
+            </div>
+            <div style="display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));">
+                <div th:each="l,stat : ${lessons}"
+                     style="position:relative;border-radius:18px;padding:14px 12px 12px;background:linear-gradient(180deg,#ffffff 0%,#f8fafc 100%);border:1px solid rgba(148,163,184,.22);box-shadow:0 8px 24px rgba(15,23,42,.04);overflow:hidden;">
+                    <div style="position:absolute;left:0;top:0;height:4px;width:100%;" th:styleappend="${l.lesson.status == 'DOING' ? 'background:#38bdf8;' : (l.lesson.status == 'COMPLETED' ? 'background:#22c55e;' : 'background:#94a3b8;')}"></div>
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <span class="badge rounded-pill" th:text="${stat.index + 1}" style="background:#eff6ff;color:#1d4ed8;">1</span>
+                        <span class="badge rounded-pill" th:classappend="${l.lesson.status == 'DOING' ? ' bg-info text-white' : (l.lesson.status == 'COMPLETED' ? ' bg-success text-white' : ' bg-secondary text-white')}" th:text="${l.lesson.status == 'DOING' ? '进行中' : (l.lesson.status == 'COMPLETED' ? '已完成' : '未开始')}">状态</span>
+                    </div>
+                    <div class="fw-semibold" style="font-size:14px;line-height:1.35;" th:text="${l.lesson.title}">课时标题</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="row g-3 mb-3">
+        <div class="col-lg-12">
+            <div class="soft-card h-100 p-0 overflow-hidden">
+                <div class="course-banner course-banner-compact" th:style="${course.coverImage != null ? 'background-image:url(' + course.coverImage + ')' : 'background: linear-gradient(135deg, #dbeafe 0%, #93c5fd 100%)'}">
+                    <div class="course-banner-mask"></div>
+                    <div class="course-banner-content justify-content-start align-items-start">
+                        <span class="badge bg-white text-primary mb-2" th:text="${course.category}">分类</span>
+                        <div class="course-title-badge-wrap">
+                            <h2 class="course-card-title course-card-title-shadow mb-0" th:text="${course.title}">课程标题</h2>
+                        </div>
+                    </div>
+                </div>
+                <div class="p-3 p-md-4">
+                    <div class="d-flex justify-content-between align-items-center mb-2 flex-wrap gap-2">
+                        <h3 class="mb-0">课程信息</h3>
+                        <div class="d-flex gap-2">
+                            <button class="btn btn-outline-primary rounded-pill" type="button" data-bs-toggle="collapse" data-bs-target="#courseEditBox">编辑课程</button>
+                            <form method="post" th:if="${isAdminView}" th:action="@{/admin/courses/{courseId}/delete(courseId=${course.id})}" onsubmit="return confirm('确定删除这门课程吗？');">
+                                <button class="btn btn-outline-danger rounded-pill" type="submit">删除课程</button>
+                            </form>
+                        </div>
+                    </div>
+                    <div class="collapse" id="courseEditBox">
+                        <form method="post" th:action="${isAdminView} ? @{/admin/courses/{courseId}/update(courseId=${course.id})} : @{/teacher/courses/{courseId}/update(courseId=${course.id})}" enctype="multipart/form-data">
+                            <div class="row g-3">
+                                <div class="col-md-6">
+                                    <label class="form-label text-muted small">课程标题</label>
+                                    <input class="form-control" name="title" th:value="${course.title}">
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label text-muted small">课程分类</label>
+                                    <select class="form-select" name="category">
+                                        <option value="中餐" th:selected="${course.category == '中餐'}">中餐</option>
+                                        <option value="西餐" th:selected="${course.category == '西餐'}">西餐</option>
+                                        <option value="日料" th:selected="${course.category == '日料'}">日料</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-3" th:if="${isAdminView}">
+                                    <label class="form-label text-muted small">允许开课教师类别</label>
+                                    <select class="form-select" name="allowedTeacherCategory">
+                                        <option value="" th:selected="${course.allowedTeacherCategory == null or course.allowedTeacherCategory.isBlank()}">默认同课程分类</option>
+                                        <option value="中餐" th:selected="${course.allowedTeacherCategory == '中餐'}">中餐教师</option>
+                                        <option value="西餐" th:selected="${course.allowedTeacherCategory == '西餐'}">西餐教师</option>
+                                        <option value="日料" th:selected="${course.allowedTeacherCategory == '日料'}">日料教师</option>
+                                    </select>
+                                </div>
+                                <input type="hidden" name="allowedTeacherCategory" th:if="${!isAdminView}" th:value="${course.allowedTeacherCategory}">
+                                <div class="col-md-3" th:if="${isAdminView}">
+                                    <label class="form-label text-muted small">负责人教师</label>
+                                    <select class="form-select" name="teacherId">
+                                        <option th:each="t : ${teachers}" th:value="${t.id}" th:selected="${t.id == course.teacherId}" th:text="${(t.realName != null and !t.realName.isBlank()) ? t.realName + '（' + t.username + '）' : t.username}"></option>
+                                    </select>
+                                </div>
+                                <input type="hidden" name="teacherId" th:if="${!isAdminView}" th:value="${course.teacherId}">
+                                <div class="col-md-3">
+                                    <label class="form-label text-muted small">目标班级</label>
+                                    <input class="form-control" name="targetClass" th:value="${course.targetClass}" placeholder="中餐1班">
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label text-muted small">封面图片上传</label>
+                                    <input class="form-control" type="file" name="coverFile" accept="image/jpeg,image/png,image/webp">
+                                </div>
+                                <div class="col-12">
+                                    <label class="form-label text-muted small">封面图片地址</label>
+                                    <input class="form-control" name="coverImage" th:value="${course.coverImage}" placeholder="可选">
+                                </div>
+                                <div class="col-12">
+                                    <label class="form-label text-muted small">课程简介</label>
+                                    <textarea class="form-control" rows="4" name="description" th:text="${course.description}"></textarea>
+                                </div>
+                            </div>
+                            <div class="text-end mt-3">
+                                <button class="btn btn-tp-primary rounded-pill px-4" type="submit">保存修改</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section id="lesson-editor" class="soft-card mb-3">
+        <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+            <div>
+                <h3 class="mb-0">新增课时</h3>
+                <div class="text-muted small">输入课时编号</div>
+            </div>
+        </div>
+        <div class="alert alert-warning border-0" th:if="${lessonError != null}">
+            <span th:text="${lessonError}">冲突提示</span>
+        </div>
+        <div class="alert alert-warning border-0" th:if="${stepError != null}">
+            <span th:text="${stepError}">冲突提示</span>
+        </div>
+        <form method="post" th:action="@{/teacher/courses/{courseId}/lessons(courseId=${course.id})}">
+            <div class="row g-2 align-items-end">
+                <div class="col-md-4"><label class="form-label text-muted small">课时标题</label><input class="form-control" name="title" placeholder="例如：食材准备"></div>
+                <div class="col-md-3"><label class="form-label text-muted small">菜品名称</label><input class="form-control" name="dishName" placeholder="例如：蛋炒饭"></div>
+                <div class="col-md-2"><label class="form-label text-muted small">课时编号</label><input class="form-control" name="sortOrder" type="number" min="1" step="1" value="1"></div>
+                <div class="col-md-3"><label class="form-label text-muted small">状态</label><select class="form-select" name="status"><option value="NOT_STARTED">未开始</option><option value="DOING">进行中</option><option value="COMPLETED">已完成</option></select></div>
+                <div class="col-12"><label class="form-label text-muted small">课时简介</label><input class="form-control" name="summary" placeholder="这一课时要学什么"></div>
+                <div class="col-12 text-end"><button class="btn btn-tp-primary rounded-pill px-4" type="submit">添加课时</button></div>
+            </div>
+        </form>
+    </section>
+
+    <section id="step-structure" class="soft-card">
+        <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+            <div>
+                <h3 class="mb-0">课时结构</h3>
+                <div class="text-muted small">点击状态块可循环切换</div>
+            </div>
+        </div>
+        <div class="row g-3" th:if="${lessons != null}">
+            <div class="col-12" th:each="l : ${lessons}">
+                <div class="border rounded-4 p-3 p-md-4 mb-3 bg-white">
+                    <div class="d-flex justify-content-between align-items-start gap-2 mb-2">
+                        <div>
+                            <div class="fw-semibold text-muted small" th:text="'课时 ' + ${l.lesson.sortOrder}">课时</div>
+                            <h4 class="mb-1" th:text="${l.lesson.title}">标题</h4>
+                            <div class="text-muted small" th:text="${l.lesson.dishName}">菜品</div>
+                        </div>
+                        <div class="d-flex gap-2 align-items-center flex-wrap">
+                            <form class="d-inline" method="post" th:action="@{/teacher/courses/{courseId}/lessons/{lessonId}/status/cycle(courseId=${course.id},lessonId=${l.lesson.id})}">
+                                <button class="badge lesson-status-pill border-0 js-lesson-status" type="submit"
+                                        th:attr="data-status=${l.lesson.status},data-url=@{/teacher/courses/lessons/{lessonId}/status/cycle-json(lessonId=${l.lesson.id})}"
+                                        th:classappend="${l.lesson.status == 'DOING' ? ' lesson-status-doing' : (l.lesson.status == 'COMPLETED' ? ' lesson-status-completed' : ' lesson-status-not-started')}"
+                                        title="点击切换状态" th:text="${l.lesson.status == 'DOING' ? '进行中' : (l.lesson.status == 'COMPLETED' ? '已完成' : '未开始')}">未开始</button>
+                            </form>
+                            <a class="btn btn-sm btn-outline-primary rounded-pill" th:href="@{/teacher/courses/{courseId}/lessons/{lessonId}/edit(courseId=${course.id},lessonId=${l.lesson.id})}">修改课时</a>
+                            <form method="post" th:action="@{/teacher/courses/{courseId}/lessons/{lessonId}/delete(courseId=${course.id},lessonId=${l.lesson.id})}" onsubmit="return confirm('确定删除这个课时吗？');">
+                                <button class="btn btn-sm btn-outline-danger rounded-pill" type="submit">删除课时</button>
+                            </form>
+                        </div>
+                    </div>
+                    <p class="text-muted small mb-3" th:text="${l.lesson.summary}">summary</p>
+
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <div class="fw-semibold">步骤</div>
+                        <span class="text-muted small">内容 / 删除</span>
+                    </div>
+                    <div class="row g-2">
+                        <div class="col-md-4" th:each="s : ${l.steps}">
+                            <div class="border rounded-4 p-3 h-100 bg-light course-step-card">
+                                <div class="d-flex justify-content-between align-items-center mb-1">
+                                    <div class="fw-semibold" th:text="${s.title}">step</div>
+                                </div>
+                                <div class="text-muted small mb-2" th:text="${s.description}">desc</div>
+                                <div class="d-flex gap-2 flex-wrap">
+                                    <form method="post" th:action="@{/teacher/courses/{courseId}/steps/{stepId}/delete(courseId=${course.id},stepId=${s.id})}" onsubmit="return confirm('确定删除这个步骤吗？');">
+                                        <button class="btn btn-sm btn-outline-danger rounded-pill" type="submit">删除</button>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <form class="mt-3" method="post" th:action="@{/teacher/courses/{courseId}/lessons/{lessonId}/steps(courseId=${course.id},lessonId=${l.lesson.id})}">
+                        <div class="row g-2 align-items-end">
+                            <div class="col-md-3"><label class="form-label text-muted small">步骤标题</label><input class="form-control form-control-sm" name="title" placeholder="例如：淘洗米饭"></div>
+                            <div class="col-md-2"><label class="form-label text-muted small">顺序</label><input class="form-control form-control-sm" name="sortOrder" type="number" min="1" step="1" value="1"></div>
+                            <div class="col-md-5"><label class="form-label text-muted small">步骤说明</label><input class="form-control form-control-sm" name="description" placeholder="这个步骤做什么"></div>
+                            <div class="col-md-2 d-grid"><button class="btn btn-sm btn-outline-primary w-100" type="submit">添加步骤</button></div>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </section>
+<script>
+(function () {
+  function applyStatus(button, status, label) {
+    button.dataset.status = status;
+    button.textContent = label;
+    button.classList.remove('lesson-status-doing', 'lesson-status-completed', 'lesson-status-not-started', 'bg-info', 'bg-success', 'bg-secondary', 'text-white');
+    if (status === 'DOING') {
+      button.classList.add('lesson-status-doing');
+    } else if (status === 'COMPLETED') {
+      button.classList.add('lesson-status-completed');
+    } else {
+      button.classList.add('lesson-status-not-started');
+    }
+  }
+
+  document.querySelectorAll('.js-lesson-status').forEach(function (button) {
+    button.addEventListener('click', async function (e) {
+      e.preventDefault();
+      const url = button.dataset.url;
+      if (!url) return;
+      button.disabled = true;
+      button.style.opacity = '0.7';
+      try {
+        const response = await fetch(url, { method: 'POST', headers: { 'X-Requested-With': 'fetch' } });
+        if (!response.ok) throw new Error('status failed');
+        const data = await response.json();
+        applyStatus(button, data.status, data.label);
+        if (data.status === 'DOING') {
+          document.querySelectorAll('.js-lesson-status').forEach(function (other) {
+            if (other !== button && other.dataset.status === 'DOING') {
+              applyStatus(other, 'NOT_STARTED', '未开始');
+            }
+          });
+        }
+      } catch (error) {
+        const form = button.closest('form');
+        if (form) form.submit();
+      } finally {
+        button.disabled = false;
+        button.style.opacity = '';
+      }
+    });
+  });
+})();
+</script>
+</div>
+</body>
+</html>

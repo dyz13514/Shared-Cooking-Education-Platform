@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout/base :: layout(${pageTitle}, ~{::content})}">
+<body>
+<div th:fragment="content">
+    <div class="d-flex align-items-center justify-content-between mb-3">
+        <h1 class="h4 mb-0">我的过程</h1>
+        <div class="d-flex gap-2">
+            <a class="btn btn-outline-secondary btn-sm" href="/student/tasks">任务中心</a>
+            <a class="btn btn-outline-secondary btn-sm" th:if="${allMode == false}" th:href="@{/student/tasks/{id}(id=${taskId})}">返回任务</a>
+            <a class="btn btn-primary btn-sm" th:if="${allMode == false}" th:href="@{/student/tasks/{id}/submit(id=${taskId})}">新建记录</a>
+        </div>
+    </div>
+
+    <div class="bg-white border rounded-4 shadow-sm p-3 p-md-4">
+        <div th:if="${page.totalElements == 0}" class="text-muted">暂无提交记录</div>
+
+        <div class="table-responsive" th:if="${page.totalElements > 0}">
+            <table class="table align-middle mb-0">
+                <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>任务ID</th>
+                    <th>状态</th>
+                    <th>提交时间</th>
+                    <th>得分</th>
+                    <th class="text-end">操作</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr th:each="s : ${page.content}" class="submission-click-row" th:attr="data-href=@{/student/submissions/{id}(id=${s.id})}" style="cursor:pointer;">
+                    <td class="text-muted"><a class="text-decoration-none stretched-link-safe" th:href="@{/student/submissions/{id}(id=${s.id})}" th:text="${s.id}">id</a></td>
+                    <td class="text-muted" th:text="${s.taskId}">taskId</td>
+                    <td><span class="badge text-bg-secondary" th:text="${s.status}">status</span></td>
+                    <td class="text-muted small" th:text="${s.submittedAt != null ? #temporals.format(s.submittedAt, 'yyyy-MM-dd HH:mm') : '—'}">time</td>
+                    <td class="fw-semibold" th:text="${s.score != null ? s.score : '—'}">score</td>
+                    <td class="text-end">
+                        <a class="btn btn-outline-secondary btn-sm" th:href="@{/student/submissions/{id}(id=${s.id})}">查看详情</a>
+                    </td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+    <script>
+        document.querySelectorAll('.submission-click-row').forEach(row => {
+            row.addEventListener('click', event => {
+                if (event.target.closest('a,button,form')) return;
+                const href = row.dataset.href;
+                if (href) window.location.href = href;
+            });
+        });
+    </script>
+</div>
+</body>
+</html>

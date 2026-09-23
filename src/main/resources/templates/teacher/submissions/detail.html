@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout/base :: layout(${pageTitle}, ~{::content})}">
+<body>
+<div th:fragment="content">
+    <div class="mb-3 d-flex justify-content-between align-items-center">
+        <a class="btn btn-outline-secondary btn-sm" th:href="@{/teacher/tasks/{id}/submissions(id=${submission.taskId})}">返回列表</a>
+        <div class="text-muted small">提交 ID：<span th:text="${submission.id}">id</span></div>
+    </div>
+
+    <div class="row g-3">
+        <div class="col-lg-8">
+            <div class="bg-white border rounded-4 shadow-sm p-3 p-md-4 mb-3">
+                <div class="d-flex gap-2 align-items-center mb-3">
+                    <span class="badge text-bg-secondary" th:text="${submission.status}">status</span>
+                    <span class="text-muted small" th:text="${submission.submittedAt != null ? #temporals.format(submission.submittedAt, 'yyyy-MM-dd HH:mm') : ''}">time</span>
+                </div>
+
+                <div class="border rounded-4 p-3 bg-light mb-3" th:if="${aiReport != null}">
+                    <div class="fw-semibold mb-2">学生提交时 AI 反馈</div>
+                    <div class="small text-muted mb-2" th:if="${aiReport.rawPrompt != null and !aiReport.rawPrompt.isBlank()}">提问：<span th:text="${aiReport.rawPrompt}">question</span></div>
+                    <div style="white-space: pre-wrap;" th:text="${aiReport.content != null and !aiReport.content.isBlank() ? aiReport.content : '暂无反馈内容'}">AI feedback</div>
+                </div>
+
+                <div class="mb-3" th:if="${aiReport != null and ((aiReport.rawPrompt != null and !aiReport.rawPrompt.isBlank()) or (aiReport.content != null and !aiReport.content.isBlank()))}">
+                    <div class="ai-submit-result-panel">
+                        <div class="fw-semibold mb-2">AI 回复与建议</div>
+                        <div class="small mb-2" th:if="${aiReport.rawPrompt != null and !aiReport.rawPrompt.isBlank()}"><span class="fw-semibold">学生问题：</span><span th:text="${aiReport.rawPrompt}">question</span></div>
+                        <div class="small" style="white-space: pre-wrap;" th:text="${aiReport.content}">ai</div>
+                    </div>
+                </div>
+
+                <div th:each="r : ${records}" class="mb-3">
+                    <div th:if="${r.type.name() == 'IMAGE'}">
+                        <div class="text-muted small mb-2" th:text="${r.originalFilename}">img</div>
+                        <img class="img-fluid rounded-3 border" th:src="@{/files/records/{id}(id=${r.id})}">
+                    </div>
+                    <div th:if="${r.type.name() == 'VIDEO'}">
+                        <div class="text-muted small mb-2" th:text="${r.originalFilename}">video</div>
+                        <video class="w-100 rounded-3 border" controls th:src="@{/files/records/{id}(id=${r.id})}"></video>
+                    </div>
+                    <div th:if="${r.type.name() == 'TEXT'}">
+                        <div class="fw-semibold mb-2">文本心得</div>
+                        <div class="border rounded-3 p-3 bg-light" style="white-space: pre-wrap;" th:text="${r.textContent}">text</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-white border rounded-4 shadow-sm p-3 p-md-4">
+                <div class="fw-semibold mb-3">批注列表</div>
+                <div th:if="${#lists.isEmpty(annotations)}" class="text-muted small">暂无批注</div>
+                <div th:each="a : ${annotations}" class="border rounded-3 p-2 mb-2">
+                    <div class="text-muted small mb-1" th:text="${#temporals.format(a.createdAt, 'yyyy-MM-dd HH:mm')}">time</div>
+                    <div class="text-muted small mb-1" th:if="${a.recordId != null}" th:text="'针对记录ID: ' + ${a.recordId}">record</div>
+                    <div class="text-muted small mb-1" th:if="${a.anchorTimeMs != null}" th:text="'时间点(ms): ' + ${a.anchorTimeMs}">ms</div>
+                    <div style="white-space: pre-wrap;" th:text="${a.content}">content</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-4">
+            <div class="bg-white border rounded-4 shadow-sm p-3 p-md-4 mb-3">
+                <div class="fw-semibold mb-2">添加批注</div>
+                <form method="post" th:action="@{/teacher/submissions/{id}/annotations(id=${submission.id})}" th:object="${annotationForm}">
+                    <div class="mb-2">
+                        <label class="form-label small">针对记录（可选）</label>
+                        <select class="form-select form-select-sm" th:field="*{recordId}">
+                            <option value="">针对整份提交</option>
+                            <option th:each="r : ${records}" th:value="${r.id}" th:text="${r.type.name() + ' #' + r.id}">record</option>
+                        </select>
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label small">时间点(ms)（可选，视频用）</label>
+                        <input class="form-control form-control-sm" type="number" th:field="*{anchorTimeMs}">
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label small">内容</label>
+                        <textarea class="form-control form-control-sm" rows="4" th:field="*{content}" maxlength="2000"></textarea>
+                    </div>
+                    <button class="btn btn-outline-primary btn-sm" type="submit">添加</button>
+                </form>
+            </div>
+
+            <div class="bg-white border rounded-4 shadow-sm p-3 p-md-4">
+                <div class="fw-semibold mb-2">成绩录入</div>
+                <form method="post" th:action="@{/teacher/submissions/{id}/grade(id=${submission.id})}" th:object="${gradeForm}">
+                    <div class="mb-2">
+                        <label class="form-label small">得分（0-100）</label>
+                        <input class="form-control form-control-sm" type="number" min="0" max="100" th:field="*{score}">
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label small">总评（可选）</label>
+                        <textarea class="form-control form-control-sm" rows="4" th:field="*{teacherOverallComment}" maxlength="2000"></textarea>
+                    </div>
+                    <button class="btn btn-primary btn-sm" type="submit">保存成绩</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+</body>
+</html>

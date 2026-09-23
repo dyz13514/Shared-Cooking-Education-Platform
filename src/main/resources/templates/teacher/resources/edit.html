@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout/base :: layout(${pageTitle}, ~{::content})}">
+<body>
+<div th:fragment="content" class="row justify-content-center">
+    <div class="col-lg-8">
+        <div class="d-flex align-items-center justify-content-between mb-3">
+            <h1 class="h4 mb-0">编辑资源</h1>
+            <a class="btn btn-outline-secondary btn-sm" href="/teacher/resources">返回</a>
+        </div>
+
+        <div class="bg-white border rounded-4 shadow-sm p-3 p-md-4">
+            <div class="alert alert-light border small mb-3">
+                当前文件：
+                <a th:href="@{/files/resources/{id}(id=${resource.id})}" target="_blank" th:text="${resource.originalFilename}">file</a>
+            </div>
+
+            <form method="post" th:action="@{/teacher/resources/{id}(id=${id})}" th:object="${form}">
+                <div class="mb-3">
+                    <label class="form-label">标题</label>
+                    <input class="form-control" th:field="*{title}" maxlength="200">
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">分类（可选）</label>
+                    <input class="form-control" th:field="*{categoryName}" maxlength="100">
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">所属课程（可选）</label>
+                    <select class="form-select" th:field="*{courseId}">
+                        <option value="">不绑定课程</option>
+                        <option th:each="c : ${courses}" th:value="${c.id}" th:text="${c.title}">课程</option>
+                    </select>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">所属课时（可选）</label>
+                    <select class="form-select" th:field="*{lessonId}">
+                        <option value="">不绑定课时</option>
+                        <option th:each="l : ${lessons}" th:value="${l.id}" th:text="${'课时' + l.sortOrder + '：' + l.title}">课时</option>
+                    </select>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">可见范围</label>
+                    <select class="form-select" th:field="*{visibility}">
+                        <option th:each="v : ${visibilities}" th:value="${v}" th:text="${v.name() == 'ALL' ? '全部可见' : (v.name() == 'TEACHER' ? '仅教师' : '仅学生')}"></option>
+                    </select>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">简介（可选）</label>
+                    <textarea class="form-control" th:field="*{description}" rows="4" maxlength="2000"></textarea>
+                </div>
+                <button class="btn btn-primary" type="submit">保存</button>
+            </form>
+        </div>
+    </div>
+</div>
+</body>
+</html>

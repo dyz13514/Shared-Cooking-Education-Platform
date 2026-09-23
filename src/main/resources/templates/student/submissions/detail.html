@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout/base :: layout(${pageTitle}, ~{::content})}">
+<body>
+<div th:fragment="content">
+    <div class="mb-3 d-flex justify-content-between align-items-center">
+        <div class="d-flex gap-2 flex-wrap">
+            <a class="btn btn-outline-secondary btn-sm" th:href="@{/student/tasks/{id}/submissions(id=${submission.taskId})}">返回列表</a>
+            <a class="btn btn-outline-primary btn-sm" th:href="@{/student/submissions/{id}/edit(id=${submission.id})}">修改提交</a>
+            <form method="post" th:action="@{/student/submissions/{id}/delete(id=${submission.id})}" class="d-inline">
+                <button class="btn btn-outline-danger btn-sm" type="submit" onclick="return confirm('确定删除这次提交吗？');">删除</button>
+            </form>
+        </div>
+        <div class="text-muted small">提交 ID：<span th:text="${submission.id}">id</span></div>
+    </div>
+
+    <div class="row g-3">
+        <div class="col-lg-8">
+            <div class="bg-white border rounded-4 shadow-sm p-3 p-md-4 mb-3">
+                <div class="d-flex gap-2 align-items-center mb-3">
+                    <span class="badge text-bg-secondary" th:text="${submission.status}">status</span>
+                    <span class="text-muted small" th:text="${submission.submittedAt != null ? #temporals.format(submission.submittedAt, 'yyyy-MM-dd HH:mm') : ''}">time</span>
+                </div>
+
+                <div class="mb-3" th:if="${aiReport != null and ((aiReport.rawPrompt != null and !aiReport.rawPrompt.isBlank()) or (aiReport.content != null and !aiReport.content.isBlank()))}">
+                    <div class="ai-submit-result-panel">
+                        <div class="fw-semibold mb-2">AI 回复与建议</div>
+                        <div class="small mb-2" th:if="${aiReport.rawPrompt != null and !aiReport.rawPrompt.isBlank()}"><span class="fw-semibold">你的问题：</span><span th:text="${aiReport.rawPrompt}">question</span></div>
+                        <div class="small" style="white-space: pre-wrap;" th:text="${aiReport.content}">ai</div>
+                    </div>
+                </div>
+
+                <div th:each="r : ${records}" class="mb-3">
+                    <div th:if="${r.type.name() == 'IMAGE'}">
+                        <div class="text-muted small mb-2" th:text="${r.originalFilename}">img</div>
+                        <img class="img-fluid rounded-3 border submission-ai-frame" th:src="@{/api/files/records/{id}(id=${r.id})}" alt="提交图片">
+                    </div>
+                    <div th:if="${r.type.name() == 'VIDEO'}">
+                        <div class="text-muted small mb-2" th:text="${r.originalFilename}">video</div>
+                        <video class="w-100 rounded-3 border" controls th:src="@{/api/files/records/{id}(id=${r.id})}"></video>
+                    </div>
+                    <div th:if="${r.type.name() == 'TEXT'}">
+                        <div class="fw-semibold mb-2">文本心得</div>
+                        <div class="border rounded-3 p-3 bg-light" style="white-space: pre-wrap;" th:text="${r.textContent}">text</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-4">
+            <div class="bg-white border rounded-4 shadow-sm p-3 p-md-4 mb-3">
+                <div class="fw-semibold mb-2">成绩与总评</div>
+                <div class="mb-2">得分：<span class="fw-semibold" th:text="${submission.score != null ? submission.score : '—'}">—</span></div>
+                <div class="text-muted small" th:if="${submission.teacherOverallComment}" style="white-space: pre-wrap;" th:text="${submission.teacherOverallComment}">comment</div>
+                <div class="text-muted small" th:if="${submission.teacherOverallComment == null}">暂无教师总评</div>
+            </div>
+
+            <div class="bg-white border rounded-4 shadow-sm p-3 p-md-4">
+                <div class="fw-semibold mb-2">教师批注</div>
+                <div th:if="${#lists.isEmpty(annotations)}" class="text-muted small">暂无批注</div>
+                <div th:each="a : ${annotations}" class="border rounded-3 p-2 mb-2">
+                    <div class="text-muted small mb-1" th:text="${#temporals.format(a.createdAt, 'yyyy-MM-dd HH:mm')}">time</div>
+                    <div style="white-space: pre-wrap;" th:text="${a.content}">content</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+</body>
+</html>

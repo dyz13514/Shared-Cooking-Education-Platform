@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout/base :: layout(${pageTitle}, ~{::content})}">
+<body>
+<div th:fragment="content">
+    <section class="page-hero mb-3">
+        <div class="d-flex align-items-start justify-content-between gap-3 flex-wrap">
+            <div>
+                <div class="page-kicker">管理员后台</div>
+                <h1 class="page-title mb-1">课程管理</h1>
+                <p class="page-subtitle mb-0">统一创建课程，并分配课程负责人教师。</p>
+            </div>
+            <a class="btn btn-tp-primary rounded-pill px-4" href="/admin/courses/new">新建课程</a>
+        </div>
+    </section>
+
+    <section class="soft-card">
+        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+            <div>
+                <h3 class="mb-0">课程卡片</h3>
+                <div class="text-muted small">按课程卡片进入结构编辑、查看提交或删除。</div>
+            </div>
+            <span class="badge bg-tp-soft text-tp-primary" th:text="${page.totalElements + ' 门课程'}">0 门课程</span>
+        </div>
+
+        <div th:if="${page.totalElements == 0}" class="text-muted text-center py-5">暂无课程</div>
+
+        <div class="row g-3" th:if="${page.totalElements > 0}">
+            <div class="col-md-6 col-xl-4" th:each="c : ${page.content}">
+                <div class="course-card border rounded-4 overflow-hidden bg-white h-100 d-flex flex-column">
+                    <div class="course-banner course-banner-compact" th:style="${c.coverImage != null and !c.coverImage.isBlank() ? 'background-image:url(' + c.coverImage + ')' : 'background: linear-gradient(135deg, #dbeafe 0%, #93c5fd 100%)'}">
+                        <div class="course-banner-mask"></div>
+                        <div class="course-banner-content justify-content-between align-items-start">
+                            <span class="badge bg-white text-primary" th:text="${c.category != null ? c.category : '未分类'}">分类</span>
+                            <span class="badge bg-dark bg-opacity-75 text-white" th:text="${'ID ' + c.id}">ID</span>
+                        </div>
+                    </div>
+                    <div class="p-3 p-md-4 d-flex flex-column flex-grow-1">
+                        <div class="d-flex justify-content-between align-items-start gap-2 mb-2">
+                            <h3 class="h5 mb-0" th:text="${c.title}">课程标题</h3>
+                            <span class="badge text-bg-light border" th:text="${c.targetClass != null and !c.targetClass.isBlank() ? c.targetClass : '未设班级'}">班级</span>
+                        </div>
+                        <p class="text-muted small flex-grow-1" th:text="${c.description != null and !c.description.isBlank() ? c.description : '暂无课程简介'}">课程简介</p>
+                        <div class="small text-muted mb-3">
+                            <div><i class="bi bi-person-badge me-1"></i>负责人教师ID：<span th:text="${c.teacherId}">1</span></div>
+                            <div><i class="bi bi-clock me-1"></i><span th:text="${#temporals.format(c.createdAt, 'yyyy-MM-dd HH:mm')}">time</span></div>
+                        </div>
+                        <div class="d-flex flex-wrap gap-2 mt-auto">
+                            <a class="btn btn-outline-primary btn-sm rounded-pill" th:href="@{/teacher/courses/{id}(id=${c.id})}">编辑结构</a>
+                            <a class="btn btn-outline-success btn-sm rounded-pill" th:href="@{/teacher/courses/{id}/submissions(id=${c.id})}">查看提交</a>
+                            <form method="post" th:action="@{/admin/courses/{id}/delete(id=${c.id})}" onsubmit="return confirm('确定删除该课程吗？')">
+                                <button class="btn btn-outline-danger btn-sm rounded-pill" type="submit">删除</button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+</div>
+</body>
+</html>

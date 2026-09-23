@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout/base :: layout(${pageTitle}, ~{::content})}">
+<body>
+<div th:fragment="content">
+    <section class="page-hero mb-3">
+        <div class="d-flex align-items-start justify-content-between gap-3 flex-wrap">
+            <div>
+                <div class="page-kicker">教学资料</div>
+                <h1 class="page-title mb-1">资源中心</h1>
+                <p class="page-subtitle mb-0" th:if="${currentProgress != null}">当前聚焦：<strong th:text="${currentProgress.courseTitle}">课程</strong> / <span th:text="${currentProgress.lessonTitle}">课时</span>，资源可按课程和课时筛选。</p>
+                <p class="page-subtitle mb-0" th:if="${currentProgress == null}">上传课件、图片、视频等上课资料，并可绑定到具体课程和课时。</p>
+            </div>
+            <a class="btn btn-tp-primary rounded-pill px-4" href="/teacher/resources/new">上传资源</a>
+        </div>
+    </section>
+
+    <section class="soft-card mb-3">
+        <form method="get" action="/teacher/resources" class="d-flex flex-wrap gap-2 align-items-center">
+            <select class="form-select" style="max-width: 300px;" name="courseId">
+                <option value="0" th:selected="${courseId == 0}">全部课程资源</option>
+                <option th:each="c : ${courses}" th:value="${c.id}" th:text="${c.title}" th:selected="${courseId == c.id}">课程</option>
+            </select>
+            <select class="form-select" style="max-width: 260px;" name="lessonId">
+                <option value="0" th:selected="${lessonId == 0}">全部课时</option>
+                <option th:each="l : ${lessons}" th:value="${l.id}" th:text="${'课时' + l.sortOrder + '：' + l.title}" th:selected="${lessonId == l.id}">课时</option>
+            </select>
+            <button class="btn btn-outline-primary rounded-pill px-4" type="submit">筛选资源</button>
+            <a class="btn btn-outline-secondary rounded-pill px-4" href="/teacher/resources">回到当前课程</a>
+        </form>
+    </section>
+
+    <section class="soft-card">
+        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+            <h3 class="mb-0">资源列表</h3>
+            <span class="badge bg-tp-soft text-tp-primary" th:text="${page.totalElements + ' 个资源'}">0 个资源</span>
+        </div>
+
+        <div th:if="${page.totalElements == 0}" class="text-muted text-center py-5">暂无资源</div>
+
+        <div class="row g-3" th:if="${page.totalElements > 0}">
+            <div class="col-md-6 col-xl-4" th:each="r : ${page.content}">
+                <div class="border rounded-4 p-3 h-100 course-card d-flex flex-column bg-white">
+                    <div class="d-flex justify-content-between align-items-start gap-2 mb-2">
+                        <span class="badge bg-tp-soft text-tp-primary" th:text="${r.title}">标题</span>
+                        <span class="badge text-bg-light border" th:text="${r.visibility == T(com.example.teachingplatform.resource.model.TeachingResource.Visibility).ALL ? '全部可见' : (r.visibility == T(com.example.teachingplatform.resource.model.TeachingResource.Visibility).TEACHER ? '仅教师' : '仅学生')}">vis</span>
+                    </div>
+                    <div class="text-muted small mb-2" th:text="${r.description != null and !r.description.isBlank() ? r.description : '暂无简介'}">desc</div>
+                    <div class="small text-muted mb-3">
+                        <div>课程ID：<span th:text="${r.courseId != null ? r.courseId : '未绑定'}">课程</span></div>
+                        <div>文件：<a th:href="@{/api/files/resources/{id}(id=${r.id})}" target="_blank" th:text="${r.originalFilename}">file</a></div>
+                        <div>类型：<span th:text="${r.contentType}">type</span></div>
+                        <div>时间：<span th:text="${#temporals.format(r.createdAt, 'yyyy-MM-dd HH:mm')}">time</span></div>
+                    </div>
+                    <div class="mt-auto d-flex flex-wrap gap-2">
+                        <a class="btn btn-outline-primary btn-sm rounded-pill" th:href="@{/api/files/resources/{id}(id=${r.id})}" target="_blank">预览</a>
+                        <a class="btn btn-outline-secondary btn-sm rounded-pill" th:href="@{/teacher/resources/{id}/edit(id=${r.id})}">编辑</a>
+                        <form method="post" th:action="@{/teacher/resources/{id}/delete(id=${r.id})}" onsubmit="return confirm('确定删除该资源吗？')">
+                            <button class="btn btn-outline-danger btn-sm rounded-pill" type="submit">删除</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+</div>
+</body>
+</html>

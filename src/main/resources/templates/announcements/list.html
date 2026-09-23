@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout/base :: layout(${pageTitle}, ~{::content})}">
+<body>
+<div th:fragment="content">
+    <div class="d-flex align-items-center justify-content-between mb-3">
+        <h1 class="h4 mb-0">系统公告</h1>
+        <a class="btn btn-primary btn-sm" href="/teacher/announcements/new" th:if="${session.role != null and session.role.name() == 'TEACHER'}">发布公告</a>
+    </div>
+
+    <div class="bg-white border rounded-4 shadow-sm p-3 p-md-4">
+        <div th:if="${page.totalElements == 0}" class="text-muted">暂无公告</div>
+
+        <div class="list-group list-group-flush" th:if="${page.totalElements > 0}">
+            <a class="list-group-item list-group-item-action py-3"
+               th:each="a : ${page.content}"
+               th:href="@{/announcements/{id}(id=${a.id})}">
+                <div class="d-flex w-100 justify-content-between align-items-start gap-3">
+                    <div>
+                        <div class="fw-semibold" th:text="${a.title}">公告标题</div>
+                        <div class="text-muted small mt-1">
+                            <span class="badge text-bg-secondary me-2" th:if="${a.category}" th:text="${a.category}">分类</span>
+                            <span th:text="${#temporals.format(a.createdAt, 'yyyy-MM-dd HH:mm')}">时间</span>
+                        </div>
+                    </div>
+                    <div class="text-muted small">查看</div>
+                </div>
+            </a>
+        </div>
+    </div>
+</div>
+</body>
+</html>

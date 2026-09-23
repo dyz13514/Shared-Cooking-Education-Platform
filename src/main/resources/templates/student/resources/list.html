@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout/base :: layout(${pageTitle}, ~{::content})}">
+<body>
+<div th:fragment="content">
+    <section class="page-hero mb-3">
+        <div class="d-flex flex-wrap justify-content-between align-items-start gap-3">
+            <div>
+                <div class="page-kicker">Resource Library</div>
+                <h1 class="page-title mb-1">学习资源库</h1>
+                <p class="page-subtitle mb-0" th:text="${courseId == 0 ? '当前显示全部课程资源。' : (currentProgress != null ? '默认优先显示当前课程 / 当前课时资源，可切换到全部。' : '资源按课程分类展示，课程内只显示相关资源。')}">资源按课程分类展示，课程内只显示相关资源。</p>
+            </div>
+            <a class="btn btn-tp-primary btn-lg rounded-pill px-4" href="/messages">私信老师</a>
+        </div>
+    </section>
+
+    <section class="soft-card mb-3">
+        <form method="get" action="/student/resources" class="d-flex flex-wrap gap-2 align-items-center">
+            <select class="form-select form-select-lg" style="max-width: 320px;" name="courseId">
+                <option value="0" th:selected="${courseId == 0}">全部课程</option>
+                <option th:each="c : ${courses}" th:value="${c.id}" th:text="${c.title}" th:selected="${courseId == c.id}">课程</option>
+            </select>
+            <select class="form-select form-select-lg" style="max-width: 320px;" name="categoryId">
+                <option value="" th:selected="${categoryId == null}">全部资源分类</option>
+                <option th:each="c : ${categories}" th:value="${c.id}" th:text="${c.name}" th:selected="${categoryId == c.id}">分类</option>
+            </select>
+            <button class="btn btn-outline-primary btn-lg rounded-pill px-4" type="submit">筛选资源</button>
+            <a class="btn btn-outline-secondary btn-lg rounded-pill px-4" href="/student/resources">回到当前课程</a>
+        </form>
+    </section>
+
+    <section class="soft-card">
+        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+            <h3 class="mb-0">资源卡片</h3>
+            <span class="text-muted small">典型案例 + 课程专属资源</span>
+        </div>
+
+        <div th:if="${page.totalElements == 0}" class="text-muted">暂无资源</div>
+
+        <div class="row g-3" th:if="${page.totalElements > 0}">
+            <div class="col-md-6 col-lg-4" th:each="r : ${page.content}">
+                <div class="border rounded-4 p-3 h-100 course-card d-flex flex-column">
+                    <div class="d-flex justify-content-between align-items-start gap-2 mb-2">
+                        <span class="badge bg-tp-soft text-tp-primary" th:text="${r.title}">标题</span>
+                        <span class="badge text-bg-light border" th:text="${r.visibility}">vis</span>
+                    </div>
+                    <div class="text-muted small mb-2" th:text="${r.description}">desc</div>
+                    <div class="small text-muted mb-3">
+                        <div>文件：<span th:text="${r.originalFilename}">file</span></div>
+                        <div>类型：<span th:text="${r.contentType}">type</span></div>
+                    </div>
+                    <div class="mt-auto d-flex flex-wrap gap-2">
+                        <a class="btn btn-outline-primary btn-sm rounded-pill" th:href="@{/api/files/resources/{id}(id=${r.id})}" target="_blank">预览</a>
+                        <a class="btn btn-outline-secondary btn-sm rounded-pill" th:href="@{/api/files/resources/{id}(id=${r.id},download=1)}">下载</a>
+                        <form method="post" th:action="@{/student/resources/{id}/favorite(id=${r.id},back='/student/resources')}">
+                            <button class="btn btn-sm rounded-pill"
+                                    th:classappend="${favoriteIds.contains(r.id) ? 'btn-warning' : 'btn-outline-warning'}"
+                                    type="submit"
+                                    th:text="${favoriteIds.contains(r.id) ? '已收藏' : '收藏'}">收藏</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+</div>
+</body>
+</html>

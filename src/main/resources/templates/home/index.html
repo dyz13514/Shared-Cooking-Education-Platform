@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout/base :: layout(${pageTitle}, ~{::content})}">
+<body>
+<div th:fragment="content">
+    <section class="page-hero">
+        <div class="page-kicker">厨学实践 · 多模态教学平台</div>
+        <h1 class="page-title">系统公告</h1>
+        <div class="d-flex flex-wrap gap-2 mt-4">
+            <a class="btn btn-tp-primary btn-lg rounded-pill px-4" href="/announcements">打开公告中心</a>
+            <a class="btn btn-outline-primary btn-lg rounded-pill px-4" href="/login" th:if="${session.uid == null}">登录平台</a>
+            <a class="btn btn-outline-primary btn-lg rounded-pill px-4" href="/register" th:if="${session.uid == null}">注册账号</a>
+            <a class="btn btn-outline-primary btn-lg rounded-pill px-4" href="/student/courses" th:if="${session.uid != null and sessionRole == 'STUDENT'}">进入课程</a>
+            <a class="btn btn-outline-primary btn-lg rounded-pill px-4" href="/teacher/dashboard" th:if="${session.uid != null and sessionRole == 'TEACHER'}">进入教师台</a>
+        </div>
+    </section>
+
+    <section class="mt-3">
+        <div class="soft-card p-0 overflow-hidden">
+            <div class="row g-0 align-items-stretch">
+                <div class="col-lg-9 p-4 p-md-5 bg-primary text-white">
+                    <div class="badge bg-white text-primary mb-3">系统公告板</div>
+                    <h2 class="h3 fw-bold mb-3">课堂提醒、任务更新、班级通知都从这里开始</h2>
+                </div>
+                <div class="col-lg-3 p-4 p-md-5 bg-light d-flex align-items-center">
+                    <div>
+                        <div class="fw-semibold mb-2">页面层级</div>
+                        <div class="text-muted small">首页：公告</div>
+                        <div class="text-muted small">二级：课程 / 任务</div>
+                        <div class="text-muted small">三级：详情 / 设置</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="soft-card mt-3" th:if="${announcements != null and !announcements.isEmpty()}">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h3 class="mb-0">最近公告</h3>
+            <a href="/announcements" class="text-decoration-none">查看更多</a>
+        </div>
+        <div class="row g-3">
+            <div class="col-md-4" th:each="a : ${announcements}">
+                <a class="text-decoration-none text-dark" th:href="@{/announcements/{id}(id=${a.id})}">
+                    <div class="border rounded-4 p-3 h-100 bg-light">
+                        <div class="badge bg-tp-soft text-tp-primary mb-2" th:text="${a.category != null ? a.category : '公告'}">公告</div>
+                        <div class="fw-semibold" th:text="${a.title}">title</div>
+                        <div class="text-muted small mt-2" style="display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden;" th:text="${a.content}">content</div>
+                    </div>
+                </a>
+            </div>
+        </div>
+    </section>
+</div>
+</body>
+</html>

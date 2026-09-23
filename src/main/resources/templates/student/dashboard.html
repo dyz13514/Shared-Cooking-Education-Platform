@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout/base :: layout(${pageTitle}, ~{::content})}">
+<body>
+<div th:fragment="content">
+    <section class="page-hero">
+        <div class="d-flex flex-wrap justify-content-between align-items-start gap-3">
+            <div>
+                <div class="page-kicker">学生首页</div>
+                <h1 class="page-title mb-0">学生首页</h1>
+            </div>
+            <span class="pill-status"><i class="bi bi-lightning-charge"></i>当前课堂进度</span>
+        </div>
+    </section>
+
+    <section class="metric-grid mt-3">
+        <a class="metric-card text-decoration-none" href="/student/courses">
+            <div class="metric-label text-dark">课程总览</div>
+            <div class="metric-value text-primary" th:text="${currentCourseCount}">0</div>
+            <div class="text-muted small">查看匹配课程</div>
+        </a>
+        <a class="metric-card text-decoration-none" href="/student/tasks">
+            <div class="metric-label text-dark">任务中心</div>
+            <div class="metric-value text-success" th:text="${pendingTasks}">0</div>
+            <div class="text-muted small" th:if="${currentProgress != null}">当前：<span th:text="${currentProgress.courseId}">0</span> / <span th:text="${currentProgress.lessonId}">0</span> / <span th:text="${currentProgress.stage}">阶段</span></div>
+            <div class="text-muted small" th:if="${currentProgress == null}">直接进入进行中的课时</div>
+        </a>
+        <a class="metric-card text-decoration-none" href="/student/resources">
+            <div class="metric-label text-dark">资源收藏</div>
+            <div class="metric-value text-info" th:text="${favoriteCount}">0</div>
+            <div class="text-muted small">进入学习资源库</div>
+        </a>
+    </section>
+
+    <section class="soft-card mt-3">
+        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+            <div>
+                <h3 class="mb-1">首页公告区</h3>
+            </div>
+            <a class="btn btn-tp-primary rounded-pill px-4" href="/announcements">查看更多公告</a>
+        </div>
+        <div class="row g-3" th:if="${announcements != null and !announcements.isEmpty()}">
+            <div class="col-12" th:each="a : ${announcements}">
+                <a class="text-decoration-none text-dark" th:href="@{/announcements/{id}(id=${a.id})}">
+                    <div class="border rounded-4 p-3 p-md-4 course-card">
+                        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-2">
+                            <span class="badge bg-tp-soft text-tp-primary" th:text="${a.category != null ? a.category : '公告'}">公告</span>
+                            <span class="text-muted small" th:text="${#temporals.format(a.createdAt, 'yyyy-MM-dd HH:mm')}">time</span>
+                        </div>
+                        <div class="fs-5 fw-bold mb-2" th:text="${a.title}">title</div>
+                        <div class="text-muted small" th:text="${a.content}">content</div>
+                    </div>
+                </a>
+            </div>
+        </div>
+        <div th:if="${announcements == null or announcements.isEmpty()}" class="text-muted">暂无公告</div>
+    </section>
+</div>
+</body>
+</html>

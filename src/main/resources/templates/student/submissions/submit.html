@@ -1,0 +1,383 @@
+<!DOCTYPE html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout/base :: layout(${pageTitle}, ~{::content})}">
+<body>
+<div th:fragment="content" class="row justify-content-center">
+    <div class="col-12 col-xl-11">
+        <section class="page-hero mb-3">
+            <div class="d-flex flex-wrap justify-content-between align-items-start gap-3">
+                <div>
+                    <div class="page-kicker">Process Record</div>
+                    <h1 class="page-title mb-1" th:text="${submission != null ? '修改课堂过程提交' : '课堂过程提交'}">课堂过程提交</h1>
+                    <p class="page-subtitle mb-0" th:text="${task.title}">task</p>
+                </div>
+                <a class="btn btn-outline-secondary btn-lg rounded-pill px-4" th:href="@{/student/tasks/{id}(id=${task.id})}">返回任务</a>
+            </div>
+        </section>
+
+
+        <section class="soft-card mb-3 ai-lite-panel">
+            <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+                <div>
+                    <h3 class="mb-0">AI 轻量辅助</h3>
+                </div>
+                <span class="badge rounded-pill text-bg-light border">展示版</span>
+            </div>
+            <div class="row g-3 align-items-stretch ai-submit-grid">
+                <div class="col-lg-8">
+                    <div class="ai-camera-box ai-submit-camera-box">
+                        <video id="aiPreview" autoplay playsinline muted></video>
+                        <canvas id="aiCanvas" class="d-none"></canvas>
+                        <div id="aiCameraPlaceholder" class="ai-camera-placeholder">
+                            <i class="bi bi-camera-video"></i>
+                            <div>点击开启摄像头进行课堂操作预览</div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-lg-4">
+                    <div class="h-100 d-flex flex-column gap-2">
+                        <div class="border rounded-4 p-3 bg-light">
+                            <div class="fw-semibold mb-1">当前步骤背景</div>
+                            <div class="small text-muted" th:text="${task.title}">当前任务</div>
+                            <div class="small text-muted mt-1" th:text="${task.requirements != null ? task.requirements : '暂无要求'}">步骤要求</div>
+                        </div>
+                        <div>
+                            <label class="form-label small text-muted">学生疑问</label>
+                            <textarea id="aiQuestion" class="form-control" rows="3" placeholder="例如：老师，我这个火候是不是太大？"></textarea>
+                        </div>
+                        <div class="border rounded-4 p-3 bg-light">
+                            <div class="fw-semibold mb-1">AI 独立建议板块</div>
+                            <div id="aiHint" class="small text-muted">可开启摄像头后截图，或直接输入个性化问题让 AI 结合当前任务分析。</div>
+                            <div id="aiResult" class="ai-result-box ai-submit-result-panel mt-2 d-none"></div>
+                        </div>
+                        <div id="aiSnapshotList" class="ai-snapshot-list"></div>
+                        <div class="d-grid gap-2 mt-auto ai-control-grid">
+                            <button class="btn btn-tp-primary rounded-pill" type="button" id="aiStartBtn">开始识别</button>
+                            <div class="d-flex gap-2 flex-wrap">
+                                <button class="btn btn-sm btn-outline-secondary rounded-pill flex-fill" type="button" id="aiCaptureBtn" disabled>截取画面</button>
+                                <button class="btn btn-sm btn-outline-info rounded-pill flex-fill" type="button" id="aiVoiceBtn">语音提问</button>
+                            </div>
+                            <div class="d-flex gap-2 flex-wrap">
+                                <button class="btn btn-sm btn-tp-primary rounded-pill flex-fill" type="button" id="aiAnalyzeBtn">AI 看一下</button>
+                                <button class="btn btn-sm btn-outline-dark rounded-pill flex-fill" type="button" id="aiSpeakBtn" disabled>朗读建议</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <div class="soft-card">
+            <form method="post" th:action="${submission != null ? '/student/submissions/' + submission.id + '/edit' : '/student/tasks/' + task.id + '/submit'}" enctype="multipart/form-data" th:object="${form}" id="submitForm">
+                <input type="hidden" name="aiFeedback" id="aiFeedbackInput">
+                <input type="hidden" name="aiQuestion" id="aiQuestionInput">
+                <input type="file" name="aiFrame" id="aiFrameInput" accept="image/jpeg,image/png,image/webp" class="d-none">
+                <div class="mb-3">
+                    <label class="form-label">文件上传</label>
+                    <input class="form-control form-control-lg" name="files" type="file" accept="image/jpeg,image/png,image/webp,video/mp4" multiple>
+                    <div class="form-text">支持照片或视频，可一次选择多个文件。</div>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">文本心得</label>
+                    <textarea class="form-control form-control-lg" th:field="*{studentText}" rows="7" maxlength="5000" placeholder="写下你的操作过程、遇到的问题、改进点等"></textarea>
+                </div>
+                <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+                    <a class="btn btn-outline-secondary rounded-pill px-4" href="/student/tasks">回到任务列表</a>
+                    <button class="btn btn-tp-primary btn-lg rounded-pill px-4" type="submit" th:text="${submission != null ? '保存修改' : '提交过程记录'}">提交过程记录</button>
+                </div>
+            </form>
+        </div>
+    </div>
+<script src="/js/ai-camera.js"></script>
+<script>
+(function () {
+    const video = document.getElementById('aiPreview');
+    const canvas = document.getElementById('aiCanvas');
+    const placeholder = document.getElementById('aiCameraPlaceholder');
+    const hint = document.getElementById('aiHint');
+    const resultBox = document.getElementById('aiResult');
+    const questionInput = document.getElementById('aiQuestion');
+    const list = document.getElementById('aiSnapshotList');
+    const startBtn = document.getElementById('aiStartBtn');
+    const captureBtn = document.getElementById('aiCaptureBtn');
+    const analyzeBtn = document.getElementById('aiAnalyzeBtn');
+    const voiceBtn = document.getElementById('aiVoiceBtn');
+    const speakBtn = document.getElementById('aiSpeakBtn');
+    const submitForm = document.getElementById('submitForm');
+    const aiFeedbackInput = document.getElementById('aiFeedbackInput');
+    const aiQuestionInput = document.getElementById('aiQuestionInput');
+    const aiFrameInput = document.getElementById('aiFrameInput');
+    if (!video || !canvas || !startBtn) return;
+
+    let stream = null;
+    let count = 0;
+    let lastBlob = null;
+    let lastReplyText = '';
+    let autoCaptureTimer = null;
+    let recognition = null;
+    let voiceActive = false;
+    let speaking = false;
+    const analyzeUrl = window.location.pathname.replace(/\/$/, '') + '/../ai/analyze-step';
+    const tips = [
+        '已记录画面。建议补充当前操作名称和关键火候。',
+        '画面已截取。提交时可以说明食材处理是否完整。',
+        '已完成一次轻量识别记录。建议记录步骤顺序和改进点。',
+        '当前帧已保存到页面预览。可以继续补充文字反思。'
+    ];
+
+    startBtn.addEventListener('click', async () => {
+        if (stream) return;
+        hint.textContent = '正在请求摄像头权限...';
+        try {
+            stream = await window.TeachingAiCamera.startCamera({
+                video,
+                placeholder,
+                audio: false,
+                onMessage: message => hint.textContent = message
+            });
+        } catch (error) {
+            hint.textContent = '摄像头脚本执行失败：' + (error && error.message ? error.message : '未知错误');
+            return;
+        }
+        if (!stream) return;
+        captureBtn.disabled = false;
+        startBtn.disabled = true;
+        startBtn.textContent = '识别中';
+        startAutoCapture();
+        hint.textContent = '已开始识别，系统会每 6 秒自动截取画面。你也可以手动截取关键画面。';
+    });
+
+    captureBtn.addEventListener('click', () => {
+        if (!stream) return;
+        captureFrame();
+    });
+
+    analyzeBtn.addEventListener('click', async () => {
+        stopAutoCapture();
+        stopContinuousVoice();
+        if (stream && !lastBlob && video.videoWidth) {
+            captureFrame();
+        }
+        if (stream && window.TeachingAiCamera) {
+            window.TeachingAiCamera.stopCamera(stream, video, placeholder);
+            stream = null;
+        }
+        captureBtn.disabled = true;
+        startBtn.disabled = false;
+        startBtn.textContent = '开始识别';
+        hint.textContent = 'AI 正在结合当前任务、问题和画面分析...';
+        analyzeBtn.disabled = true;
+        try {
+            const formData = new FormData();
+            formData.append('question', questionInput.value || '');
+            if (lastBlob) {
+                formData.append('image', lastBlob, 'ai-frame.jpg');
+            }
+            const response = await fetch(analyzeUrl, { method: 'POST', body: formData });
+            if (!response.ok) throw new Error('AI analysis failed');
+            const data = await response.json();
+            lastReplyText = cleanAiText([data.summary, data.problem, data.suggestion, data.nextAction, data.risk].filter(Boolean).join('。'));
+            syncAiHiddenFields();
+            resultBox.classList.remove('d-none');
+            resultBox.innerHTML = '<div><strong>当前判断：</strong>' + escapeHtml(data.stageMatch || '已分析') + ' · ' + Math.round((data.confidence || 0) * 100) + '%</div>'
+                + '<div><strong>主要问题：</strong>' + escapeHtml(data.problem || '暂无明显问题') + '</div>'
+                + '<div><strong>改进建议：</strong>' + escapeHtml(data.suggestion || '继续按要求完成当前步骤') + '</div>'
+                + '<div><strong>下一步：</strong>' + escapeHtml(data.nextAction || '继续记录过程') + '</div>'
+                + '<div><strong>注意：</strong>' + escapeHtml(data.risk || '注意安全和画面清晰') + '</div>';
+            hint.textContent = data.summary || 'AI 分析完成。';
+            speakBtn.disabled = !lastReplyText;
+            if (lastReplyText) {
+                speakAdvice(true);
+            }
+        } catch (e) {
+            hint.textContent = 'AI 分析暂时失败，请稍后重试。';
+        } finally {
+            analyzeBtn.disabled = false;
+        }
+    });
+
+    voiceBtn.addEventListener('click', () => {
+        if (voiceActive) {
+            stopContinuousVoice();
+            hint.textContent = '语音提问已结束。麦克风已关闭。';
+        } else {
+            startContinuousVoice(true);
+        }
+    });
+
+    if (submitForm) {
+        submitForm.addEventListener('submit', () => {
+            syncAiHiddenFields();
+        });
+    }
+
+    speakBtn.addEventListener('click', () => {
+        if (!lastReplyText || !window.speechSynthesis) return;
+        if (speaking) {
+            window.speechSynthesis.pause();
+            speaking = false;
+            speakBtn.textContent = '朗读建议';
+            return;
+        }
+        speakAdvice(true);
+    });
+
+    function startAutoCapture() {
+        stopAutoCapture();
+        autoCaptureTimer = window.setInterval(() => {
+            if (stream && !document.hidden) {
+                captureFrame();
+            }
+        }, 6000);
+        window.setTimeout(() => {
+            if (stream && !lastBlob) captureFrame();
+        }, 1000);
+    }
+
+    function stopAutoCapture() {
+        if (autoCaptureTimer) {
+            window.clearInterval(autoCaptureTimer);
+            autoCaptureTimer = null;
+        }
+    }
+
+    function captureFrame() {
+        const width = video.videoWidth || 640;
+        const height = video.videoHeight || 360;
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(video, 0, 0, width, height);
+        const dataUrl = canvas.toDataURL('image/jpeg', 0.72);
+        lastBlob = dataUrlToBlob(dataUrl);
+        syncAiHiddenFields();
+        const img = document.createElement('img');
+        img.src = dataUrl;
+        img.alt = 'AI 截帧预览';
+        count += 1;
+        const item = document.createElement('div');
+        item.className = 'ai-snapshot-item';
+        item.innerHTML = '<div class="small fw-semibold">截帧 ' + count + '</div><div class="small text-muted">' + tips[(count - 1) % tips.length] + '</div>';
+        item.prepend(img);
+        list.prepend(item);
+        while (list.children.length > 4) {
+            list.removeChild(list.lastElementChild);
+        }
+        hint.textContent = tips[(count - 1) % tips.length];
+    }
+
+    function startContinuousVoice(forceMessage) {
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        if (!SpeechRecognition) {
+            if (forceMessage) hint.textContent = '当前浏览器不支持语音识别，请使用 Chrome 或 Edge，或直接输入问题。';
+            return;
+        }
+        stopContinuousVoice();
+        recognition = new SpeechRecognition();
+        recognition.lang = 'zh-CN';
+        recognition.continuous = true;
+        recognition.interimResults = true;
+        recognition.onresult = event => {
+            let finalText = '';
+            let interimText = '';
+            for (let i = event.resultIndex; i < event.results.length; i++) {
+                const text = event.results[i][0].transcript;
+                if (event.results[i].isFinal) finalText += text;
+                else interimText += text;
+            }
+            const current = questionInput.value || '';
+            if (finalText) questionInput.value = (current + ' ' + finalText).trim();
+            else if (interimText) hint.textContent = '正在识别语音：' + interimText;
+        };
+        recognition.onerror = event => {
+            if (event.error !== 'no-speech') hint.textContent = '语音识别暂时不可用，可直接输入问题。';
+        };
+        recognition.onend = () => {
+            if (voiceActive) {
+                try { recognition.start(); } catch (e) {}
+            }
+        };
+        try {
+            recognition.start();
+            voiceActive = true;
+            voiceBtn.textContent = '结束语音';
+            voiceBtn.setAttribute('aria-pressed', 'true');
+            voiceBtn.classList.remove('btn-outline-info');
+            voiceBtn.classList.add('btn-info', 'text-white');
+            hint.textContent = forceMessage ? '语音识别已开启，会持续记录你的提问。再次点击结束语音并关闭麦克风。' : hint.textContent;
+        } catch (e) {
+            voiceActive = false;
+            if (forceMessage) hint.textContent = '语音识别启动失败，请直接输入问题。';
+        }
+    }
+
+    function stopContinuousVoice() {
+        voiceActive = false;
+        voiceBtn.textContent = '语音提问';
+        voiceBtn.setAttribute('aria-pressed', 'false');
+        voiceBtn.classList.add('btn-outline-info');
+        voiceBtn.classList.remove('btn-info', 'text-white');
+        if (recognition) {
+            recognition.onend = null;
+            try { recognition.stop(); } catch (e) {}
+            recognition = null;
+        }
+    }
+
+    function speakAdvice(restart) {
+        if (!lastReplyText || !window.speechSynthesis) return;
+        if (restart) {
+            window.speechSynthesis.cancel();
+        }
+        const utterance = new SpeechSynthesisUtterance(lastReplyText);
+        utterance.lang = 'zh-CN';
+        utterance.rate = 1;
+        utterance.onstart = () => {
+            speaking = true;
+            speakBtn.textContent = '暂停朗读';
+        };
+        utterance.onend = () => {
+            speaking = false;
+            speakBtn.textContent = '朗读建议';
+        };
+        utterance.onerror = () => {
+            speaking = false;
+            speakBtn.textContent = '朗读建议';
+        };
+        window.speechSynthesis.speak(utterance);
+    }
+
+    function cleanAiText(text) {
+        return String(text || '').replace(/[\*#]/g, '').trim();
+    }
+
+    function syncAiHiddenFields() {
+        if (aiFeedbackInput) aiFeedbackInput.value = lastReplyText || '';
+        if (aiQuestionInput) aiQuestionInput.value = questionInput ? questionInput.value || '' : '';
+        if (aiFrameInput && lastBlob) {
+            const file = new File([lastBlob], 'ai-frame.jpg', { type: lastBlob.type || 'image/jpeg' });
+            const dataTransfer = new DataTransfer();
+            dataTransfer.items.add(file);
+            aiFrameInput.files = dataTransfer.files;
+        }
+    }
+
+    function dataUrlToBlob(dataUrl) {
+        const parts = dataUrl.split(',');
+        const mime = parts[0].match(/:(.*?);/)[1];
+        const binary = atob(parts[1]);
+        const bytes = new Uint8Array(binary.length);
+        for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+        return new Blob([bytes], { type: mime });
+    }
+
+    function escapeHtml(value) {
+        return String(value || '').replace(/[&<>'"]/g, char => ({
+            '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;'
+        }[char]));
+    }
+})();
+</script>
+</div>
+</body>
+</html>

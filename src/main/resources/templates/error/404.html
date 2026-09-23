@@ -1,0 +1,12 @@
+<!DOCTYPE html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout/base :: layout('404 - 未找到', ~{::content})}">
+<body>
+<div th:fragment="content" class="bg-white border rounded-4 shadow-sm p-4">
+    <h1 class="h4 mb-2">404 未找到</h1>
+    <p class="text-muted mb-3">你访问的页面不存在，可能是链接已变更或输入有误。</p>
+    <a class="btn btn-outline-secondary" href="/">返回首页</a>
+</div>
+</body>
+</html>
+

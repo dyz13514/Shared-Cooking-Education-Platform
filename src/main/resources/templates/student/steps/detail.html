@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout/base :: layout(${pageTitle}, ~{::content})}">
+<body>
+<div th:fragment="content">
+    <section class="page-hero mb-3">
+        <div class="d-flex flex-wrap justify-content-between align-items-start gap-3">
+            <div>
+                <div class="page-kicker">AI Step Coach</div>
+                <h1 class="page-title mb-1" th:text="${step.title}">步骤标题</h1>
+                <p class="page-subtitle mb-0" th:text="${step.description}">步骤说明</p>
+            </div>
+            <a class="btn btn-outline-secondary rounded-pill px-4" href="javascript:history.back()">返回上一页</a>
+        </div>
+    </section>
+
+    <section class="row g-3 mb-3">
+        <div class="col-xl-7">
+            <div class="soft-card h-100 ai-lite-panel">
+                <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+                    <div>
+                        <h3 class="mb-0">当前步骤 AI 辅助</h3>
+                    </div>
+                    <span class="badge rounded-pill text-bg-light border">步骤上下文</span>
+                </div>
+                <div class="ai-camera-box mb-3">
+                    <video id="aiPreview" autoplay playsinline muted></video>
+                    <canvas id="aiCanvas" class="d-none"></canvas>
+                    <div id="aiCameraPlaceholder" class="ai-camera-placeholder">
+                        <i class="bi bi-stars"></i>
+                        <div>开启摄像头，让 AI 看当前步骤</div>
+                    </div>
+                </div>
+                <div class="d-flex gap-2 flex-wrap">
+                    <button class="btn btn-sm btn-outline-primary rounded-pill" type="button" id="aiStartBtn">开启摄像头</button>
+                    <button class="btn btn-sm btn-outline-secondary rounded-pill" type="button" id="aiCaptureBtn" disabled>截取画面</button>
+                    <button class="btn btn-sm btn-tp-primary rounded-pill" type="button" id="aiAnalyzeBtn">AI 看一下</button>
+                    <button class="btn btn-sm btn-outline-dark rounded-pill" type="button" id="aiVoiceBtn">语音提问</button>
+                    <button class="btn btn-sm btn-outline-dark rounded-pill" type="button" id="aiSpeakBtn" disabled>朗读建议</button>
+                    <button class="btn btn-sm btn-outline-danger rounded-pill" type="button" id="aiStopBtn" disabled>停止</button>
+                </div>
+            </div>
+        </div>
+        <div class="col-xl-5">
+            <div class="soft-card h-100">
+                <h3 class="mb-3">步骤问题与建议</h3>
+                <div class="border rounded-4 p-3 bg-light mb-3">
+                    <div class="fw-semibold mb-1">当前步骤背景</div>
+                    <div class="small text-muted" th:text="${step.description}">步骤说明</div>
+                </div>
+                <label class="form-label">向 AI 描述你的疑问</label>
+                <textarea id="aiQuestion" class="form-control mb-3" rows="4" placeholder="例如：我这一步火候是不是太大？米饭有点结块怎么办？"></textarea>
+                <div id="aiHint" class="small text-muted mb-3">可先截取画面，也可以直接输入或语音提问。</div>
+                <div id="aiResult" class="ai-result-box d-none"></div>
+                <div id="aiSnapshotList" class="ai-snapshot-list mt-3"></div>
+            </div>
+        </div>
+    </section>
+
+    <section class="row g-3 mb-3">
+        <div class="col-lg-5">
+            <div class="soft-card h-100 submit-panel-card">
+                <h3 th:text="${latestSubmission != null ? '修改本步骤记录' : '提交本步骤'}">提交本步骤</h3>
+                <div class="small text-muted mb-3">把 AI 建议和你的真实操作整理成步骤记录</div>
+                <form method="post" th:action="@{/student/steps/{id}/submit(id=${step.id})}" th:object="${form}" enctype="multipart/form-data" id="stepSubmitForm">
+                    <input type="hidden" th:field="*{submissionId}">
+                    <input type="hidden" th:field="*{aiQuestion}" id="aiQuestionInput">
+                    <input type="hidden" th:field="*{aiFeedback}" id="aiFeedbackInput">
+                    <input type="file" name="aiFrame" id="aiFrameInput" accept="image/jpeg,image/png,image/webp" class="d-none">
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold">提交文件（图片/照片）</label>
+                        <input class="form-control" type="file" name="attachment" accept="image/jpeg,image/png,image/webp">
+                        <div class="form-text">支持 jpg、png、webp，最多 10MB。修改时上传新图片会替换原图片。</div>
+                    </div>
+                    <textarea class="form-control mb-3" rows="7" th:field="*{studentText}" placeholder="记录你这一步骤的内容、发现和反思"></textarea>
+                    <button class="btn btn-tp-primary w-100 rounded-pill" type="submit" th:text="${latestSubmission != null ? '保存修改' : '提交步骤'}">提交步骤</button>
+                </form>
+                <form method="post" class="mt-2" th:if="${latestSubmission != null}" th:action="@{/student/steps/{stepId}/submissions/{submissionId}/delete(stepId=${step.id},submissionId=${latestSubmission.id})}">
+                    <button class="btn btn-outline-danger w-100 rounded-pill" type="submit" onclick="return confirm('确定删除这次步骤提交吗？');">删除最近提交</button>
+                </form>
+            </div>
+        </div>
+        <div class="col-lg-7">
+            <div class="soft-card h-100">
+                <h3 class="mb-3">最近一次提交</h3>
+                <div th:if="${latestSubmission == null}" class="text-muted">还没有提交记录</div>
+                <div th:if="${latestSubmission != null}" class="border rounded-4 p-3 bg-light">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <span class="badge bg-tp-soft text-tp-primary" th:text="${latestSubmission.status}">状态</span>
+                        <span class="text-muted small" th:text="${#temporals.format(latestSubmission.createdAt, 'yyyy-MM-dd HH:mm')}">time</span>
+                    </div>
+                    <div class="row g-2 mb-3" th:if="${latestSubmission.aiFramePath != null or latestSubmission.attachmentPath != null}">
+                        <div class="col-md-6" th:if="${latestSubmission.aiFramePath != null}">
+                            <div class="fw-semibold small mb-2">AI 截帧</div>
+                            <img class="img-fluid rounded-4 border step-submission-image" th:src="@{/student/steps/submissions/{submissionId}/ai-frame(submissionId=${latestSubmission.id})}" alt="AI 截帧">
+                        </div>
+                        <div class="col-md-6" th:if="${latestSubmission.attachmentPath != null}">
+                            <div class="fw-semibold small mb-2">提交图片 / 照片</div>
+                            <img class="img-fluid rounded-4 border step-submission-image" th:src="@{/student/steps/submissions/{submissionId}/attachment(submissionId=${latestSubmission.id})}" alt="提交图片">
+                        </div>
+                    </div>
+                    <div class="mb-3" th:if="${latestSubmission.aiFeedback != null and !latestSubmission.aiFeedback.isBlank()}">
+                        <div class="ai-submit-result-panel">
+                            <div class="fw-semibold mb-2">AI 回复与建议</div>
+                            <div class="small" style="white-space: pre-wrap;" th:text="${latestSubmission.aiFeedback}">AI</div>
+                        </div>
+                    </div>
+                    <div class="fw-semibold small mb-2">学生总结 / 反思</div>
+                    <div style="white-space: pre-wrap;" th:text="${latestSubmission.studentText}">内容</div>
+                    <div class="mt-2 small text-muted" th:if="${latestSubmission.teacherComment != null}" th:text="${latestSubmission.teacherComment}"></div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="soft-card">
+        <h3 class="mb-3">历史提交</h3>
+        <div th:if="${history == null or history.isEmpty()}" class="text-muted">暂无历史记录</div>
+        <div class="row g-3" th:if="${history != null and !history.isEmpty()}">
+            <div class="col-12" th:each="s : ${history}">
+                <div class="border rounded-4 p-3 bg-light">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <span class="badge text-bg-light border" th:text="${s.status}">status</span>
+                        <span class="text-muted small" th:text="${#temporals.format(s.createdAt, 'yyyy-MM-dd HH:mm')}">time</span>
+                    </div>
+                    <div class="row g-3">
+                        <div class="col-md-4" th:if="${s.aiFramePath != null or s.attachmentPath != null}">
+                            <img class="img-fluid rounded-4 border step-submission-image mb-2" th:if="${s.aiFramePath != null}" th:src="@{/student/steps/submissions/{submissionId}/ai-frame(submissionId=${s.id})}" alt="AI 截帧">
+                            <img class="img-fluid rounded-4 border step-submission-image" th:if="${s.attachmentPath != null}" th:src="@{/student/steps/submissions/{submissionId}/attachment(submissionId=${s.id})}" alt="提交图片">
+                        </div>
+                        <div th:classappend="${s.aiFramePath != null or s.attachmentPath != null ? 'col-md-8' : 'col-12'}">
+                            <div th:if="${s.aiFeedback != null and !s.aiFeedback.isBlank()}" class="ai-submit-result-panel mb-2">
+                                <div class="fw-semibold mb-1">AI 回复与建议</div>
+                                <div class="small" style="white-space: pre-wrap;" th:text="${s.aiFeedback}">AI</div>
+                            </div>
+                            <div style="white-space: pre-wrap;" th:text="${s.studentText}">text</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+<script src="/js/ai-camera.js"></script>
+<script th:inline="javascript">
+(function () {
+    const analyzeUrl = /*[[@{/student/steps/{id}/ai/analyze(id=${step.id})}]]*/ '';
+    const video = document.getElementById('aiPreview');
+    const canvas = document.getElementById('aiCanvas');
+    const placeholder = document.getElementById('aiCameraPlaceholder');
+    const hint = document.getElementById('aiHint');
+    const resultBox = document.getElementById('aiResult');
+    const questionInput = document.getElementById('aiQuestion');
+    const list = document.getElementById('aiSnapshotList');
+    const startBtn = document.getElementById('aiStartBtn');
+    const captureBtn = document.getElementById('aiCaptureBtn');
+    const analyzeBtn = document.getElementById('aiAnalyzeBtn');
+    const voiceBtn = document.getElementById('aiVoiceBtn');
+    const speakBtn = document.getElementById('aiSpeakBtn');
+    const stopBtn = document.getElementById('aiStopBtn');
+    const submitForm = document.getElementById('stepSubmitForm');
+    const aiQuestionInput = document.getElementById('aiQuestionInput');
+    const aiFeedbackInput = document.getElementById('aiFeedbackInput');
+    const aiFrameInput = document.getElementById('aiFrameInput');
+    let stream = null;
+    let lastBlob = null;
+    let lastReplyText = '';
+    let count = 0;
+    let autoCaptureTimer = null;
+    let recognition = null;
+    let voiceActive = false;
+
+    function cleanAiText(text) {
+        return String(text || '').replace(/[\*#]/g, '').trim();
+    }
+
+    function syncAiHiddenFields() {
+        if (aiQuestionInput) aiQuestionInput.value = questionInput ? questionInput.value || '' : '';
+        if (aiFeedbackInput) aiFeedbackInput.value = cleanAiText(lastReplyText || '');
+        if (aiFrameInput && lastBlob) {
+            const file = new File([lastBlob], 'step-ai-frame.jpg', { type: lastBlob.type || 'image/jpeg' });
+            const dataTransfer = new DataTransfer();
+            dataTransfer.items.add(file);
+            aiFrameInput.files = dataTransfer.files;
+        }
+    }
+
+    function dataUrlToBlob(dataUrl) {
+        const arr = dataUrl.split(',');
+        const mime = arr[0].match(/:(.*?);/)[1];
+        const bstr = atob(arr[1]);
+        let n = bstr.length;
+        const u8arr = new Uint8Array(n);
+        while (n--) u8arr[n] = bstr.charCodeAt(n);
+        return new Blob([u8arr], { type: mime });
+    }
+    function escapeHtml(value) {
+        return String(value || '').replace(/[&<>'"]/g, s => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[s]));
+    }
+    function startAutoCapture() {
+        stopAutoCapture();
+        autoCaptureTimer = window.setInterval(() => {
+            if (stream && !document.hidden) captureFrame();
+        }, 8000);
+        window.setTimeout(() => {
+            if (stream && !lastBlob) captureFrame();
+        }, 1200);
+    }
+    function stopAutoCapture() {
+        if (autoCaptureTimer) {
+            window.clearInterval(autoCaptureTimer);
+            autoCaptureTimer = null;
+        }
+    }
+    function startContinuousVoice(forceMessage) {
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        if (!SpeechRecognition) {
+            if (forceMessage) hint.textContent = '当前浏览器不支持语音识别，请使用 Chrome 或 Edge，或直接输入问题。';
+            return;
+        }
+        stopContinuousVoice();
+        recognition = new SpeechRecognition();
+        recognition.lang = 'zh-CN';
+        recognition.continuous = true;
+        recognition.interimResults = true;
+        recognition.onresult = event => {
+            let finalText = '';
+            let interimText = '';
+            for (let i = event.resultIndex; i < event.results.length; i++) {
+                const text = event.results[i][0].transcript;
+                if (event.results[i].isFinal) finalText += text;
+                else interimText += text;
+            }
+            const current = questionInput.value || '';
+            if (finalText) questionInput.value = (current + ' ' + finalText).trim();
+            else if (interimText) hint.textContent = '正在识别语音：' + interimText;
+        };
+        recognition.onerror = event => {
+            if (event.error !== 'no-speech') hint.textContent = '语音识别暂时不可用，可直接输入问题。';
+        };
+        recognition.onend = () => {
+            if (voiceActive) {
+                try { recognition.start(); } catch (e) {}
+            }
+        };
+        try {
+            recognition.start();
+            voiceActive = true;
+            voiceBtn.textContent = '结束语音';
+            voiceBtn.classList.remove('btn-outline-dark');
+            voiceBtn.classList.add('btn-info', 'text-white');
+            hint.textContent = forceMessage ? '语音识别已开启，会持续记录你的提问。再次点击可结束语音并关闭麦克风。' : hint.textContent;
+        } catch (e) {
+            if (forceMessage) hint.textContent = '语音识别启动失败，请直接输入问题。';
+        }
+    }
+    function stopContinuousVoice() {
+        voiceActive = false;
+        voiceBtn.textContent = '语音提问';
+        voiceBtn.classList.add('btn-outline-dark');
+        voiceBtn.classList.remove('btn-info', 'text-white');
+        if (recognition) {
+            recognition.onend = null;
+            try { recognition.stop(); } catch (e) {}
+            recognition = null;
+        }
+    }
+    function stopAllAi() {
+        stopAutoCapture();
+        stopContinuousVoice();
+        if (window.speechSynthesis) {
+            window.speechSynthesis.cancel();
+        }
+        if (stream) {
+            window.TeachingAiCamera.stopCamera(stream, video, placeholder);
+            stream = null;
+        }
+        captureBtn.disabled = true;
+        stopBtn.disabled = true;
+        startBtn.disabled = false;
+    }
+
+    function captureFrame() {
+        if (!stream) return;
+        canvas.width = video.videoWidth || 640;
+        canvas.height = video.videoHeight || 360;
+        canvas.getContext('2d').drawImage(video, 0, 0, canvas.width, canvas.height);
+        const dataUrl = canvas.toDataURL('image/jpeg', 0.7);
+        lastBlob = dataUrlToBlob(dataUrl);
+        syncAiHiddenFields();
+        count += 1;
+        const item = document.createElement('div');
+        item.className = 'ai-snapshot-item';
+        item.innerHTML = '<img src="' + dataUrl + '" alt="AI 截帧"><div><div class="small fw-semibold">步骤截帧 ' + count + '</div><div class="small text-muted">已作为 AI 分析参考</div></div>';
+        list.prepend(item);
+    }
+    startBtn.addEventListener('click', async () => {
+        hint.textContent = '正在请求摄像头和麦克风权限...';
+        try {
+            stream = await window.TeachingAiCamera.startCamera({
+                video,
+                placeholder,
+                audio: true,
+                onMessage: message => hint.textContent = message
+            });
+        } catch (error) {
+            hint.textContent = '摄像头脚本执行失败：' + (error && error.message ? error.message : '未知错误');
+            return;
+        }
+        if (!stream) return;
+        captureBtn.disabled = false;
+        stopBtn.disabled = false;
+        startBtn.disabled = true;
+        startAutoCapture();
+        startContinuousVoice();
+        hint.textContent = '摄像头已开启，系统会每 8 秒自动截取画面；语音识别会尽量同步记录你的问题。';
+    });
+    captureBtn.addEventListener('click', captureFrame);
+    analyzeBtn.addEventListener('click', async () => {
+        if (stream && !lastBlob) captureFrame();
+        stopAllAi();
+        analyzeBtn.disabled = true;
+        hint.textContent = 'AI 正在结合当前步骤分析...';
+        try {
+            const formData = new FormData();
+            formData.append('question', questionInput.value || '');
+            if (lastBlob) formData.append('image', lastBlob, 'step-frame.jpg');
+            const response = await fetch(analyzeUrl, { method: 'POST', body: formData });
+            const data = await response.json();
+            lastReplyText = cleanAiText([data.summary, data.problem, data.suggestion, data.nextAction, data.risk].filter(Boolean).join('。'));
+            syncAiHiddenFields();
+            resultBox.classList.remove('d-none');
+            resultBox.innerHTML = '<div><strong>当前判断：</strong>' + escapeHtml(data.stageMatch || '已分析') + '</div>'
+                + '<div><strong>主要问题：</strong>' + escapeHtml(data.problem || '暂无明显问题') + '</div>'
+                + '<div><strong>改进建议：</strong>' + escapeHtml(data.suggestion) + '</div>'
+                + '<div><strong>下一步：</strong>' + escapeHtml(data.nextAction) + '</div>'
+                + '<div><strong>注意：</strong>' + escapeHtml(data.risk) + '</div>';
+            hint.textContent = data.summary || 'AI 分析完成。';
+            speakBtn.disabled = !lastReplyText;
+        } catch (e) {
+            hint.textContent = 'AI 分析失败，请稍后重试。';
+        } finally {
+            analyzeBtn.disabled = false;
+        }
+    });
+    voiceBtn.addEventListener('click', () => {
+        if (voiceActive) {
+            stopContinuousVoice();
+            hint.textContent = '语音提问已结束。麦克风已关闭。';
+        } else {
+            startContinuousVoice(true);
+        }
+    });
+    if (submitForm) {
+        submitForm.addEventListener('submit', syncAiHiddenFields);
+    }
+    speakBtn.addEventListener('click', () => {
+        if (!lastReplyText || !window.speechSynthesis) return;
+        window.speechSynthesis.cancel();
+        const utterance = new SpeechSynthesisUtterance(lastReplyText);
+        utterance.lang = 'zh-CN';
+        window.speechSynthesis.speak(utterance);
+    });
+    stopBtn.addEventListener('click', () => {
+        stopAllAi();
+        hint.textContent = '已停止摄像头、自动截帧、语音识别和朗读。';
+    });
+})();
+</script>
+</div>
+</body>
+</html>

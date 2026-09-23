@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout/base :: layout(${pageTitle}, ~{::content})}">
+<body>
+<div th:fragment="content">
+    <section class="page-hero mb-3">
+        <div class="d-flex align-items-start justify-content-between gap-3 flex-wrap">
+            <div>
+                <div class="page-kicker">我的课程</div>
+                <h1 class="page-title mb-1">所教课程</h1>
+                <p class="page-subtitle mb-0">查看自己负责的课程、课时结构和步骤提交；课程创建由管理员统一维护。</p>
+            </div>
+        </div>
+    </section>
+
+    <section class="soft-card mb-3">
+        <form method="get" action="/teacher/courses" class="row g-2 align-items-end">
+            <div class="col-md-4">
+                <label class="form-label text-muted small">课程分类</label>
+                <select class="form-select" name="category">
+                    <option value="全部" th:selected="${selectedCategory == null or selectedCategory == '全部'}">全部</option>
+                    <option value="中餐" th:selected="${selectedCategory == '中餐'}">中餐</option>
+                    <option value="西餐" th:selected="${selectedCategory == '西餐'}">西餐</option>
+                    <option value="日料" th:selected="${selectedCategory == '日料'}">日料</option>
+                </select>
+            </div>
+            <div class="col-md-6">
+                <label class="form-label text-muted small">搜索课程</label>
+                <input class="form-control" type="text" name="query" th:value="${query}" placeholder="输入课程标题或简介关键字">
+            </div>
+            <div class="col-md-2 d-grid">
+                <button class="btn btn-outline-primary rounded-pill" type="submit">筛选</button>
+            </div>
+        </form>
+    </section>
+
+    <div th:if="${teacherCategory != null and !teacherCategory.isEmpty()}" class="alert alert-info mt-3 d-flex justify-content-between align-items-center flex-wrap gap-2">
+        <div>主要课程大类：<strong th:text="${teacherCategory}">中餐</strong></div>
+        <div th:if="${matchedCourseCount != null}" class="small">匹配课程：<strong th:text="${matchedCourseCount}">0</strong> 门</div>
+    </div>
+
+    <div th:if="${page.totalElements > 0}">
+        <div class="mb-2 small text-muted">优先显示与你主要课程大类匹配的课程</div>
+    </div>
+
+    <div class="soft-card mt-3">
+        <div th:if="${page.totalElements == 0}" class="text-muted text-center py-5">暂无课程</div>
+
+        <div class="row g-4 mt-0" th:if="${page.totalElements > 0}">
+            <div class="col-md-6 col-lg-4" th:each="c : ${page.content}">
+                <div class="soft-card h-100 p-0 overflow-hidden d-flex flex-column course-card course-card-large" th:classappend="${teacherCategory != null and teacherCategory == c.category} ? 'border-primary shadow-sm' : ''">
+                    <div class="course-banner position-relative" th:style="${c.coverImage != null ? 'background-image:url(' + c.coverImage + ')' : 'background: linear-gradient(135deg, #f8fbff 0%, #edf4ff 48%, #e3edfb 100%)'}">
+                        <div class="course-banner-mask"></div>
+                        <div class="course-banner-content justify-content-start align-items-start">
+                            <span class="badge bg-white text-primary align-self-start mb-2" th:text="${c.category}">分类</span>
+                            <div class="course-title-badge-wrap mb-2">
+                                <h3 class="course-card-title course-card-title-shadow mb-0" th:text="${c.title}">课程标题</h3>
+                            </div>
+                            <span class="badge bg-white text-primary" th:if="${teacherCategory != null and c.category != null and teacherCategory == c.category}">推荐课程</span>
+                        </div>
+                    </div>
+                    <div class="p-3 d-flex flex-column flex-grow-1">
+                        <p class="text-muted small mb-3 flex-grow-1" th:text="${c.description}">Description</p>
+                        <div class="d-flex justify-content-between align-items-center gap-2 flex-wrap">
+                            <a class="btn btn-outline-primary rounded-pill" th:href="@{/teacher/courses/{id}(id=${c.id})}">编辑课程</a>
+                            <a class="btn btn-outline-success rounded-pill" th:href="@{/teacher/courses/{id}/submissions(id=${c.id})}">查看提交</a>
+                            <button class="btn rounded-pill js-course-toggle"
+                                    th:classappend="${currentProgress != null and currentProgress.courseId == c.id} ? ' btn-success' : ' btn-outline-primary'"
+                                    th:attr="data-url=@{/teacher/courses/{id}/toggle(id=${c.id})},data-active=${currentProgress != null and currentProgress.courseId == c.id}"
+                                    type="button"
+                                    th:text="${currentProgress != null and currentProgress.courseId == c.id} ? '结束本节课' : '开始本节课'">开始本节课</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+<script>
+(function () {
+  document.querySelectorAll('.js-course-toggle').forEach(function (button) {
+    button.addEventListener('click', async function () {
+      const url = button.dataset.url;
+      if (!url || button.disabled) return;
+      button.disabled = true;
+      button.style.opacity = '0.75';
+      try {
+        const response = await fetch(url, { method: 'POST', headers: { 'X-Requested-With': 'fetch' } });
+        if (!response.ok) throw new Error('toggle failed');
+        const data = await response.json();
+        document.querySelectorAll('.js-course-toggle').forEach(function (btn) {
+          btn.classList.remove('btn-success');
+          btn.classList.add('btn-outline-primary');
+          btn.textContent = '开始本节课';
+          btn.dataset.active = 'false';
+          btn.disabled = false;
+          btn.style.opacity = '';
+        });
+        if (data.active) {
+          button.classList.remove('btn-outline-primary');
+          button.classList.add('btn-success');
+          button.textContent = data.buttonText || '结束本节课';
+          button.dataset.active = 'true';
+        }
+      } catch (error) {
+        window.location.reload();
+      } finally {
+        button.disabled = false;
+        button.style.opacity = '';
+      }
+    });
+  });
+})();
+</script>
+</div>
+</body>
+</html>

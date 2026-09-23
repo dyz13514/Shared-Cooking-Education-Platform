@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout/base :: layout(${pageTitle}, ~{::content})}">
+<body>
+<div th:fragment="content">
+    <section class="page-hero mb-3">
+        <div class="d-flex align-items-start justify-content-between gap-3 flex-wrap">
+            <div>
+                <div class="page-kicker">课程中心</div>
+                <h1 class="page-title mb-1">课程总览</h1>
+                <p class="page-subtitle mb-0">这里展示完整课程结构，点击课程卡片进入详情。</p>
+            </div>
+        </div>
+    </section>
+
+    <section class="soft-card mt-3 mb-3">
+        <form method="get" action="/student/courses" class="row g-2 align-items-end">
+            <div class="col-md-4">
+                <label class="form-label text-muted small">课程分类</label>
+                <select class="form-select" name="category">
+                    <option value="全部" th:selected="${selectedCategory == null or selectedCategory == '全部'}">全部</option>
+                    <option value="中餐" th:selected="${selectedCategory == '中餐'}">中餐</option>
+                    <option value="西餐" th:selected="${selectedCategory == '西餐'}">西餐</option>
+                    <option value="日料" th:selected="${selectedCategory == '日料'}">日料</option>
+                </select>
+            </div>
+            <div class="col-md-6">
+                <label class="form-label text-muted small">搜索课程</label>
+                <input class="form-control" name="query" th:value="${query}" placeholder="输入标题或简介关键字">
+            </div>
+            <div class="col-md-2 d-grid">
+                <button class="btn btn-outline-primary rounded-pill" type="submit">筛选</button>
+            </div>
+        </form>
+    </section>
+
+    <div th:if="${studentClass != null and !studentClass.isEmpty()}" class="alert alert-info mt-3 d-flex justify-content-between align-items-center flex-wrap gap-2">
+        <div>当前班级：<strong th:text="${studentClass}"></strong></div>
+        <div th:if="${matchedCourseCount != null}" class="small">匹配课程：<strong th:text="${matchedCourseCount}"></strong> 门</div>
+    </div>
+
+    <div th:if="${page.totalElements == 0}" class="alert alert-light border mt-4 text-center text-muted py-5">
+        暂无课程数据
+    </div>
+
+    <div th:if="${page.totalElements > 0}">
+        <div class="mb-2 small text-muted">优先显示与你的班级匹配的课程</div>
+    </div>
+
+    <div class="row g-4 mt-2" th:if="${page.totalElements > 0}">
+        <div class="col-md-6 col-lg-4" th:each="c : ${page.content}">
+            <a class="text-decoration-none text-dark d-block h-100" th:href="@{/student/courses/{id}(id=${c.id})}">
+                <div class="soft-card h-100 p-0 overflow-hidden d-flex flex-column course-card course-card-large" th:classappend="${studentCategory != null and studentCategory == c.category} ? 'border-primary shadow-sm' : ''">
+                    <div class="course-banner position-relative" th:style="${c.coverImage != null ? 'background-image:url(' + c.coverImage + ')' : 'background: linear-gradient(135deg, #f8fbff 0%, #edf4ff 48%, #e3edfb 100%)'}">
+                        <div class="course-banner-mask"></div>
+                        <div class="course-banner-content justify-content-start align-items-start">
+                            <span class="badge bg-white text-primary align-self-start mb-2" th:text="${c.category}">分类</span>
+                            <div class="course-title-badge-wrap mb-2">
+                                <h3 class="course-card-title course-card-title-shadow mb-0" th:text="${c.title}">课程大标题</h3>
+                            </div>
+                            <span class="badge bg-white text-primary" th:if="${studentCategory != null and c.category != null and studentCategory == c.category}">推荐给你</span>
+                        </div>
+                    </div>
+                    <div class="p-3 d-flex flex-column flex-grow-1">
+                        <p class="text-muted small mb-3 flex-grow-1" th:text="${c.description}">Description</p>
+                        <div class="d-flex justify-content-between align-items-center small text-muted">
+                            <span>查看课程结构</span>
+                            <i class="bi bi-arrow-right"></i>
+                        </div>
+                    </div>
+                </div>
+            </a>
+        </div>
+    </div>
+</div>
+</body>
+</html>

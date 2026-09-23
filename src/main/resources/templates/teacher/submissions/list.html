@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout/base :: layout(${pageTitle}, ~{::content})}">
+<body>
+<div th:fragment="content">
+    <section class="page-hero mb-3">
+        <div class="d-flex flex-wrap justify-content-between align-items-start gap-3">
+            <div>
+                <div class="page-kicker">Review Center</div>
+                <h1 class="page-title mb-1">提交批改中心</h1>
+                <p class="page-subtitle mb-0" th:text="${task.title}">task</p>
+            </div>
+            <a class="btn btn-tp-primary btn-lg rounded-pill px-4" href="/teacher/tasks">返回任务中心</a>
+        </div>
+    </section>
+
+    <section class="soft-card mb-3">
+        <div class="row g-3">
+            <div class="col-md-4">
+                <div class="border rounded-4 p-3 h-100 bg-light">
+                    <div class="fw-semibold mb-1">重点处理</div>
+                    <div class="small text-muted">优先查看最新提交和未评分记录。</div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="border rounded-4 p-3 h-100 bg-primary text-white">
+                    <div class="fw-semibold mb-1">过程批注</div>
+                    <div class="small opacity-75">点评建议尽量具体、可执行。</div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="border rounded-4 p-3 h-100 bg-light">
+                    <div class="fw-semibold mb-1">成绩沉淀</div>
+                    <div class="small text-muted">批改后形成个人学习档案。</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="soft-card">
+        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+            <h3 class="mb-0">提交列表</h3>
+            <span class="text-muted small">点开即可进入批注页</span>
+        </div>
+
+        <div th:if="${page.totalElements == 0}" class="text-muted">暂无提交</div>
+
+        <div class="row g-3" th:if="${page.totalElements > 0}">
+            <div class="col-12" th:each="s : ${page.content}">
+                <div class="border rounded-4 p-3 p-md-4 d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 course-card">
+                    <div>
+                        <div class="d-flex flex-wrap gap-2 align-items-center mb-2">
+                            <span class="badge bg-tp-soft text-tp-primary" th:text="${s.status}">status</span>
+                            <span class="badge text-bg-light border">学生ID <span th:text="${s.studentId}">student</span></span>
+                        </div>
+                        <div class="fs-5 fw-bold">提交 <span th:text="${s.id}">id</span></div>
+                        <div class="text-muted small mt-2" th:text="${s.submittedAt != null ? #temporals.format(s.submittedAt, 'yyyy-MM-dd HH:mm') : '—'}">time</div>
+                    </div>
+                    <div class="d-flex align-items-center gap-2">
+                        <div class="fs-5 fw-bold text-primary" th:text="${s.score != null ? s.score : '—'}">score</div>
+                        <a class="btn btn-tp-primary rounded-pill" th:href="@{/teacher/submissions/{id}(id=${s.id})}">进入批改</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+</div>
+</body>
+</html>

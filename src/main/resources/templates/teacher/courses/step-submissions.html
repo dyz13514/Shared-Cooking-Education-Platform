@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout/base :: layout(${pageTitle}, ~{::content})}">
+<body>
+<div th:fragment="content">
+    <section class="page-hero mb-3">
+        <div class="d-flex justify-content-between align-items-start gap-3 flex-wrap">
+            <div>
+                <div class="page-kicker">步骤提交</div>
+                <h1 class="page-title mb-1" th:text="${step.title}">步骤标题</h1>
+                <p class="page-subtitle mb-0" th:text="${step.description}">完整查看学生步骤记录、AI 截帧、AI 回复和教师批注。</p>
+            </div>
+            <div class="d-flex gap-2 flex-wrap">
+                <a class="btn btn-outline-primary rounded-pill px-4" th:href="@{/teacher/courses/{id}/submissions(id=${courseId})}">返回提交总览</a>
+                <a class="btn btn-outline-secondary rounded-pill px-4" th:href="@{/teacher/courses/{id}(id=${courseId})}">编辑课程</a>
+            </div>
+        </div>
+    </section>
+
+    <section class="soft-card">
+        <div th:if="${submissions == null or submissions.isEmpty()}" class="text-muted text-center py-5">暂无提交</div>
+        <div class="row g-3" th:if="${submissions != null and !submissions.isEmpty()}">
+            <div class="col-12" th:each="s : ${submissions}">
+                <div class="submission-detail-card border rounded-4 p-3 p-md-4 bg-white">
+                    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+                        <div class="d-flex gap-2 align-items-center flex-wrap">
+                            <span class="badge bg-tp-soft text-tp-primary" th:text="${s.status}">status</span>
+                            <span class="text-muted small" th:text="${#temporals.format(s.createdAt, 'yyyy-MM-dd HH:mm')}">time</span>
+                            <span class="text-muted small" th:text="${'学生ID：' + s.studentId}">学生</span>
+                        </div>
+                        <span class="badge text-bg-light border" th:text="${s.score != null ? '得分：' + s.score : '未评分'}">得分</span>
+                    </div>
+
+                    <div class="row g-3 mb-3">
+                        <div class="col-lg-5" th:if="${s.aiFramePath != null}">
+                            <div class="fw-semibold mb-2">AI 截帧</div>
+                            <img class="img-fluid rounded-4 border submission-ai-frame" th:src="@{/teacher/courses/steps/submissions/{submissionId}/ai-frame(submissionId=${s.id})}" alt="AI 截帧">
+                        </div>
+                        <div th:classappend="${s.aiFramePath != null ? 'col-lg-7' : 'col-12'}">
+                            <div class="fw-semibold mb-2">学生总结 / 反思</div>
+                            <div class="border rounded-4 p-3 bg-light submission-text" style="white-space: pre-wrap;" th:text="${s.studentText != null and !s.studentText.isBlank() ? s.studentText : '未填写文字反思'}">text</div>
+                        </div>
+                    </div>
+
+                    <div class="row g-3 mb-3" th:if="${(s.aiQuestion != null and !s.aiQuestion.isBlank()) or (s.aiFeedback != null and !s.aiFeedback.isBlank())}">
+                        <div class="col-md-5" th:if="${s.aiQuestion != null and !s.aiQuestion.isBlank()}">
+                            <div class="ai-submit-result-panel h-100">
+                                <div class="fw-semibold mb-2">学生个性化问题</div>
+                                <div class="small" style="white-space: pre-wrap;" th:text="${s.aiQuestion}">question</div>
+                            </div>
+                        </div>
+                        <div th:classappend="${s.aiQuestion != null and !s.aiQuestion.isBlank() ? 'col-md-7' : 'col-12'}">
+                            <div class="ai-submit-result-panel h-100">
+                                <div class="fw-semibold mb-2">AI 回复与建议</div>
+                                <div class="small" style="white-space: pre-wrap;" th:text="${s.aiFeedback}">ai</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="border-top pt-3 mt-3">
+                        <div class="fw-semibold mb-2">教师批注</div>
+                        <form class="row g-2" method="post" th:action="@{/teacher/courses/steps/submissions/{submissionId}/review(submissionId=${s.id})}">
+                            <div class="col-md-2"><input class="form-control" name="score" type="number" min="0" max="100" placeholder="分数" th:value="${s.score}"></div>
+                            <div class="col-md-8"><input class="form-control" name="comment" placeholder="教师批注" th:value="${s.teacherComment}"></div>
+                            <div class="col-md-2"><button class="btn btn-tp-primary w-100 rounded-pill" type="submit">保存批注</button></div>
+                        </form>
+                        <div class="text-muted small mt-2" th:if="${s.teacherComment != null and !s.teacherComment.isBlank()}" th:text="${'当前批注：' + s.teacherComment}">comment</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+</div>
+</body>
+</html>

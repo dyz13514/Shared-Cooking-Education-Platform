@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout/base :: layout(${pageTitle}, ~{::content})}">
+<body>
+<div th:fragment="content">
+    <section class="page-hero mb-3">
+        <div class="d-flex flex-wrap justify-content-between align-items-start gap-3">
+            <div>
+                <div class="page-kicker">消息中心</div>
+                <h1 class="page-title mb-1">私信</h1>
+            </div>
+        </div>
+    </section>
+
+    <section class="row g-3">
+        <div class="col-lg-4 col-xl-3">
+            <div class="soft-card h-100 contact-panel">
+                <div class="fw-semibold mb-3">搜索联系人</div>
+                <a class="ai-shortcut text-decoration-none mb-3 d-block" href="/messages?peerId=ai">
+                    <div class="ai-shortcut-inner">
+                        <div>
+                            <div class="fw-semibold">智能助手</div>
+                            <div class="small">课堂答疑 · 教学辅助</div>
+                        </div>
+                        <span class="badge rounded-pill text-bg-light border">AI</span>
+                    </div>
+                </a>
+                <form method="get" action="/messages" class="mb-3 position-relative">
+                    <input type="hidden" name="peerId" th:value="${peerId}">
+                    <div class="input-group input-group-lg">
+                        <input id="contactSearch" class="form-control rounded-start-4" type="search" name="q" th:value="${q}" placeholder="搜索名字" autocomplete="off">
+                        <button class="btn btn-tp-primary rounded-end-4" type="submit"><i class="bi bi-search"></i></button>
+                    </div>
+                    <div id="contactSuggest" class="suggest-box d-none"></div>
+                </form>
+                <div class="contact-list">
+                    <a th:each="p : ${peers}" class="contact-item contact-item-compact text-decoration-none" th:classappend="${peerId == p.id ? 'active' : ''}" th:href="@{/messages(peerId=${p.id},q=${q})}">
+                        <div class="contact-avatar" th:text="${(p.realName != null and !p.realName.isEmpty()) ? p.realName.substring(0,1) : p.username.substring(0,1)}">A</div>
+                        <div class="flex-grow-1 min-w-0">
+                            <div class="fw-semibold text-truncate" th:text="${p.realName != null and !p.realName.isEmpty() ? p.realName : p.username}">name</div>
+                            <div class="small text-muted" th:text="${p.role == T(com.example.teachingplatform.auth.model.Role).TEACHER ? '老师' : '学生'}">role</div>
+                        </div>
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-8 col-xl-9">
+            <div class="soft-card d-flex flex-column chat-shell" id="chatShell" th:attr="data-ai-mode=${peerId == 'ai'}">
+                <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+                    <div>
+                        <div class="fw-semibold" th:text="${peerId == 'ai' ? '智能助手' : (peerName != null ? peerName : '请选择联系人')}">peer</div>
+                        <div class="small text-muted" th:if="${peerId == 'ai'}" th:text="${mode == 'teacher' ? '辅助备课、任务设计、批改反馈和教学组织' : '随时回答课程、任务、步骤和提交问题'}">智能助手说明</div>
+                    </div>
+                    <a class="btn btn-outline-secondary btn-sm rounded-pill" th:href="${mode == 'student' ? '/student/tasks' : '/teacher/tasks'}">返回中心</a>
+                </div>
+
+                <div class="chat-board flex-grow-1 mb-3" id="chatBoard">
+                    <div th:if="${messages == null or messages.isEmpty()} and ${peerId != 'ai'}" class="text-muted text-center py-5">暂无聊天记录</div>
+                    <div th:if="${peerId == 'ai'}" class="chat-msg-row other">
+                        <div class="chat-msg bubble-other ai-welcome">
+                            <div class="small text-muted mb-1 d-flex justify-content-between gap-2">
+                                <span>智能助手</span>
+                                <span>Now</span>
+                            </div>
+                            <div th:text="${mode == 'teacher' ? '你好，我是教师端智能助手。你可以问我课程建设、任务发布、批改反馈、资源管理和课堂组织建议。' : '你好，我是智能助手。你可以问我课程进度、任务要求、步骤顺序或提交建议。'}">你好，我是智能助手。</div>
+                        </div>
+                    </div>
+                    <div th:each="m : ${messages}" class="chat-msg-row" th:with="isMe=${peerId == 'ai' ? m.fromStudent : (mode == 'student' ? m.fromStudent : !m.fromStudent)}" th:classappend="${isMe ? 'me' : 'other'}" th:attr="data-message-id=${m.id}">
+                        <div class="chat-msg" th:classappend="${isMe ? 'bubble-me' : 'bubble-other'}">
+                            <div class="small text-muted mb-1 d-flex justify-content-between gap-2">
+                                <span th:text="${isMe ? selfLabel : otherLabel}">who</span>
+                                <span th:text="${#temporals.format(m.createdAt, 'MM-dd HH:mm')}">time</span>
+                            </div>
+                            <div th:text="${m.content}">content</div>
+                            <form th:if="${peerId != null and peerId != 'ai'}" method="post" action="/messages/delete" class="mt-2 text-end">
+                                <input type="hidden" name="messageId" th:value="${m.id}">
+                                <input type="hidden" name="peerId" th:value="${peerId}">
+                                <button class="btn btn-link btn-sm text-decoration-none p-0 text-muted chat-delete-btn" type="submit">删除</button>
+                            </form>
+                            <div th:if="${peerId == 'ai'}" class="mt-2 text-end">
+                                <button class="btn btn-link btn-sm text-decoration-none p-0 text-muted js-ai-delete" type="button" th:attr="data-id=${m.id}">删除</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <form method="post" th:action="@{/messages}" th:object="${form}" class="chat-compose" id="chatCompose">
+                    <input type="hidden" th:field="*{targetId}">
+                    <div class="input-group chat-compose-group">
+                        <textarea class="form-control rounded-start-4" rows="2" th:field="*{content}" id="messageContent" placeholder="输入消息...（回车发送，Shift+回车换行）"></textarea>
+                        <button class="btn btn-tp-primary rounded-end-4 message-send-btn" id="messageSendBtn" type="submit" th:text="${aiMode ? '发送' : '发送'}">发送</button>
+                    </div>
+                </form>
+                <form method="post" th:action="@{/messages}" th:if="${peerId == 'ai'}" class="mt-3" th:object="${form}">
+                    <input type="hidden" th:field="*{targetId}">
+                    <input type="hidden" name="targetId" value="-1">
+                </form>
+            </div>
+        </div>
+    </section>
+
+    <script>
+        (function () {
+            const input = document.getElementById('contactSearch');
+            const box = document.getElementById('contactSuggest');
+            if (!input || !box) return;
+            const contacts = Array.from(document.querySelectorAll('.contact-item')).map(el => ({
+                text: (el.innerText || '').trim(),
+                href: el.getAttribute('href')
+            }));
+            input.addEventListener('input', () => {
+                const q = input.value.trim().toLowerCase();
+                if (!q) {
+                    box.classList.add('d-none');
+                    box.innerHTML = '';
+                    return;
+                }
+                const matched = contacts.filter(c => c.text.toLowerCase().includes(q)).slice(0, 6);
+                if (!matched.length) {
+                    box.innerHTML = '<div class="p-3 text-muted small">未找到匹配联系人</div>';
+                    box.classList.remove('d-none');
+                    return;
+                }
+                box.innerHTML = matched.map(m => `<a class="suggest-item" href="${m.href}">${m.text.replace(/\n/g,'<br>')}</a>`).join('');
+                box.classList.remove('d-none');
+            });
+            document.addEventListener('click', (e) => {
+                if (!box.contains(e.target) && e.target !== input) box.classList.add('d-none');
+            });
+        })();
+
+        (function () {
+            const chatShell = document.getElementById('chatShell');
+            const form = document.getElementById('chatCompose');
+            const textarea = document.getElementById('messageContent');
+            const sendBtn = document.getElementById('messageSendBtn');
+            const board = document.getElementById('chatBoard');
+            const aiMode = chatShell && chatShell.dataset.aiMode === 'true';
+            if (!chatShell || !form || !textarea || !sendBtn || !board) return;
+
+            function scrollBottom() {
+                board.scrollTop = board.scrollHeight;
+            }
+
+            requestAnimationFrame(scrollBottom);
+            window.addEventListener('load', scrollBottom);
+
+            if (!aiMode) return;
+
+            let sending = false;
+
+            function cleanAiText(text) {
+                return String(text || '').replace(/[\*#]/g, '').replace(/智能教师/g, '智能助手');
+            }
+
+            function extractThinkSegments(rawText) {
+                const text = String(rawText || '');
+                const thinkParts = [];
+                let answer = '';
+                let cursor = 0;
+                while (cursor < text.length) {
+                    const start = text.indexOf('<think>', cursor);
+                    if (start < 0) {
+                        answer += text.slice(cursor);
+                        break;
+                    }
+                    answer += text.slice(cursor, start);
+                    const end = text.indexOf('</think>', start + 7);
+                    if (end < 0) {
+                        thinkParts.push(text.slice(start + 7));
+                        break;
+                    }
+                    thinkParts.push(text.slice(start + 7, end));
+                    cursor = end + 8;
+                }
+                return {
+                    think: cleanAiText(thinkParts.join('\n')).trim(),
+                    answer: cleanAiText(answer).replace(/<think>|<\/think>/g, '').trim()
+                };
+            }
+
+            function renderAiContent(container, rawText, collapsed) {
+                const segments = extractThinkSegments(rawText);
+                container.innerHTML = '';
+                if (segments.think) {
+                    const thinkBox = document.createElement('details');
+                    thinkBox.className = 'ai-think-box';
+                    thinkBox.open = !collapsed;
+                    thinkBox.innerHTML = '<summary class="small text-muted mb-1">思考过程</summary><div class="ai-think-text"></div>';
+                    thinkBox.querySelector('.ai-think-text').textContent = segments.think;
+                    container.appendChild(thinkBox);
+                }
+                const answerBox = document.createElement('div');
+                answerBox.className = 'ai-answer-box';
+                answerBox.textContent = segments.answer || '...';
+                container.appendChild(answerBox);
+            }
+
+            function appendMessage(message, fromStudent, typing) {
+                const row = document.createElement('div');
+                row.className = 'chat-msg-row ' + (fromStudent ? 'me' : 'other');
+                if (message.id) row.dataset.messageId = message.id;
+                row.innerHTML = `
+                    <div class="chat-msg ${fromStudent ? 'bubble-me' : 'bubble-other'}">
+                        <div class="small text-muted mb-1 d-flex justify-content-between gap-2">
+                            <span>${fromStudent ? '我' : '智能助手'}</span>
+                            <span>${typing ? '生成中' : '刚刚'}</span>
+                        </div>
+                        <div class="js-msg-content"></div>
+                        <div class="mt-2 text-end">
+                            <button class="btn btn-link btn-sm text-decoration-none p-0 text-muted js-ai-delete" type="button" ${message.id ? `data-id="${message.id}"` : ''}>删除</button>
+                        </div>
+                    </div>`;
+                board.appendChild(row);
+                scrollBottom();
+                return row.querySelector('.js-msg-content');
+            }
+
+            function setMessageTime(messageEl, text) {
+                const row = messageEl.closest('.chat-msg-row');
+                const timeEl = row ? row.querySelector('.small.text-muted span:last-child') : null;
+                if (timeEl) timeEl.textContent = text;
+            }
+
+            function handleAiEvent(event, userEl, aiEl, state) {
+                const userRow = userEl.closest('.chat-msg-row');
+                const aiRow = aiEl.closest('.chat-msg-row');
+                if (event.type === 'user' && userRow) {
+                    userRow.dataset.messageId = event.id;
+                    const userDelete = userRow.querySelector('.js-ai-delete');
+                    if (userDelete) userDelete.dataset.id = event.id;
+                } else if (event.type === 'delta') {
+                    state.rawAiText += String(event.content || '');
+                    renderAiContent(aiEl, state.rawAiText, true);
+                    scrollBottom();
+                } else if (event.type === 'done' && aiRow) {
+                    aiRow.dataset.messageId = event.id;
+                    const aiDelete = aiRow.querySelector('.js-ai-delete');
+                    if (aiDelete) aiDelete.dataset.id = event.id;
+                    renderAiContent(aiEl, state.rawAiText, true);
+                    setMessageTime(aiEl, '刚刚');
+                }
+            }
+
+            function parseStreamChunk(buffer, userEl, aiEl, state) {
+                const normalized = buffer.replace(/\r\n/g, '\n');
+                const parts = normalized.split('\n\n');
+                const rest = parts.pop() || '';
+                for (const part of parts) {
+                    const dataLines = part.split('\n')
+                        .map(line => line.trim())
+                        .filter(line => line.startsWith('data:'))
+                        .map(line => line.slice(5).trim())
+                        .filter(Boolean);
+                    if (!dataLines.length) continue;
+                    handleAiEvent(JSON.parse(dataLines.join('\n')), userEl, aiEl, state);
+                }
+                return rest;
+            }
+
+            async function sendAiMessage() {
+                const content = textarea.value.trim();
+                if (!content || sending) return;
+                sending = true;
+                textarea.disabled = true;
+                sendBtn.disabled = true;
+                sendBtn.textContent = '发送中...';
+                const userEl = appendMessage({ content }, true, false);
+                userEl.textContent = content;
+                textarea.value = '';
+                const aiEl = appendMessage({ content: '' }, false, true);
+                const state = { rawAiText: '' };
+
+                try {
+                    const response = await fetch('/messages/ai/send', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json', 'Accept': 'text/event-stream' },
+                        body: JSON.stringify({ content })
+                    });
+                    if (!response.ok || !response.body) throw new Error('send failed');
+                    const reader = response.body.getReader();
+                    const decoder = new TextDecoder('utf-8');
+                    let buffer = '';
+                    while (true) {
+                        const { value, done } = await reader.read();
+                        if (done) break;
+                        buffer += decoder.decode(value, { stream: true });
+                        buffer = parseStreamChunk(buffer, userEl, aiEl, state);
+                    }
+                    buffer += decoder.decode();
+                    if (buffer.trim()) {
+                        parseStreamChunk(buffer + '\n\n', userEl, aiEl, state);
+                    }
+                    if (!state.rawAiText.trim()) {
+                        aiEl.textContent = '暂时没有生成回复，请稍后重试。';
+                    }
+                    setMessageTime(aiEl, '刚刚');
+                } catch (e) {
+                    aiEl.textContent = '发送失败，请稍后重试。';
+                    setMessageTime(aiEl, '失败');
+                } finally {
+                    sending = false;
+                    textarea.disabled = false;
+                    sendBtn.disabled = false;
+                    sendBtn.textContent = '发送';
+                    textarea.focus();
+                }
+            }
+
+            textarea.addEventListener('keydown', function (e) {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    sendAiMessage();
+                }
+            });
+
+            form.addEventListener('submit', function (e) {
+                e.preventDefault();
+                sendAiMessage();
+            });
+
+            board.addEventListener('click', async function (e) {
+                const btn = e.target.closest('.js-ai-delete');
+                if (!btn) return;
+                const id = btn.dataset.id;
+                const row = btn.closest('.chat-msg-row');
+                if (!id || !row) return;
+                try {
+                    const response = await fetch('/messages/ai/messages/' + id + '/delete', { method: 'POST' });
+                    if (!response.ok) throw new Error('delete failed');
+                    row.remove();
+                } catch (error) {
+                    alert('删除失败，请稍后重试');
+                }
+            });
+        })();
+    </script>
+</div>
+</body>
+</html>

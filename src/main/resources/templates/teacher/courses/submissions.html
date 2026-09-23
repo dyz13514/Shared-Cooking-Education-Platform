@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout/base :: layout(${pageTitle}, ~{::content})}">
+<body>
+<div th:fragment="content">
+    <section class="page-hero mb-3">
+        <div class="d-flex justify-content-between align-items-start gap-3 flex-wrap">
+            <div>
+                <div class="page-kicker">课程提交查看</div>
+                <h1 class="page-title mb-1" th:text="${course.title}">课程标题</h1>
+                <p class="page-subtitle mb-0">这里专门查看各课时步骤的学生提交，不混入课程编辑操作。</p>
+            </div>
+            <div class="d-flex gap-2 flex-wrap">
+                <a class="btn btn-outline-primary rounded-pill px-4" th:href="@{/teacher/courses/{id}(id=${course.id})}">编辑课程</a>
+                <a class="btn btn-outline-secondary rounded-pill px-4" href="/teacher/courses">返回课程中心</a>
+            </div>
+        </div>
+    </section>
+
+    <section class="soft-card mb-3">
+        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+            <div>
+                <div class="page-kicker">课时进度</div>
+                <h3 class="mb-0" th:text="${isActiveCourse ? '课程正在进行中' : '课程未开始'}">课程状态</h3>
+                <div class="text-muted small">按课时查看当前状态，下面可进入各步骤提交列表。</div>
+            </div>
+            <span class="badge rounded-pill px-3 py-2" th:classappend="${isActiveCourse ? ' bg-info text-white' : ' bg-secondary text-white'}" th:text="${isActiveCourse ? '进行中' : '未开始'}">状态</span>
+        </div>
+        <div class="mt-4" th:if="${lessons != null and !lessons.isEmpty()}">
+            <div style="display:grid;gap:12px;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));">
+                <div th:each="l,stat : ${lessons}"
+                     style="position:relative;border-radius:18px;padding:14px 12px 12px;background:linear-gradient(180deg,#ffffff 0%,#f8fafc 100%);border:1px solid rgba(148,163,184,.22);box-shadow:0 8px 24px rgba(15,23,42,.04);overflow:hidden;">
+                    <div style="position:absolute;left:0;top:0;height:4px;width:100%;" th:styleappend="${l.lesson.status == 'DOING' ? 'background:#38bdf8;' : (l.lesson.status == 'COMPLETED' ? 'background:#22c55e;' : 'background:#94a3b8;')}"></div>
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <span class="badge rounded-pill" th:text="'课时 ' + ${l.lesson.sortOrder}" style="background:#eff6ff;color:#1d4ed8;">课时 1</span>
+                        <span class="badge rounded-pill" th:classappend="${l.lesson.status == 'DOING' ? ' bg-info text-white' : (l.lesson.status == 'COMPLETED' ? ' bg-success text-white' : ' bg-light text-dark')}" th:text="${l.lesson.status == 'DOING' ? '进行中' : (l.lesson.status == 'COMPLETED' ? '已完成' : '未开始')}">状态</span>
+                    </div>
+                    <div class="fw-semibold" style="font-size:14px;line-height:1.35;" th:text="${l.lesson.title}">课时标题</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="soft-card">
+        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+            <div>
+                <h3 class="mb-0">按课时查看提交</h3>
+                <div class="text-muted small">点击具体步骤进入提交批注页面。</div>
+            </div>
+            <span class="badge bg-tp-soft text-tp-primary" th:text="${lessons != null ? lessons.size() + ' 个课时' : '0 个课时'}">0 个课时</span>
+        </div>
+
+        <div th:if="${lessons == null or lessons.isEmpty()}" class="text-muted text-center py-5">暂无课时结构</div>
+
+        <div class="row g-3" th:if="${lessons != null and !lessons.isEmpty()}">
+            <div class="col-12" th:each="l : ${lessons}">
+                <div class="border rounded-4 p-3 p-md-4 bg-white">
+                    <div class="d-flex justify-content-between align-items-start gap-2 mb-3">
+                        <div>
+                            <div class="fw-semibold text-muted small" th:text="'课时 ' + ${l.lesson.sortOrder}">课时</div>
+                            <h4 class="mb-1" th:text="${l.lesson.title}">课时标题</h4>
+                            <div class="text-muted small" th:text="${l.lesson.summary}">课时简介</div>
+                        </div>
+                        <span class="badge rounded-pill" th:classappend="${l.lesson.status == 'DOING' ? ' bg-info text-white' : (l.lesson.status == 'COMPLETED' ? ' bg-success text-white' : ' bg-secondary text-white')}" th:text="${l.lesson.status == 'DOING' ? '进行中' : (l.lesson.status == 'COMPLETED' ? '已完成' : '未开始')}">状态</span>
+                    </div>
+
+                    <div class="row g-2">
+                        <div class="col-md-4" th:each="s : ${l.steps}">
+                            <a class="text-decoration-none text-dark" th:href="@{/teacher/courses/steps/{stepId}/submissions(stepId=${s.id})}">
+                                <div class="border rounded-4 p-3 h-100 bg-light course-step-card">
+                                    <div class="d-flex justify-content-between align-items-center mb-1">
+                                        <div class="fw-semibold" th:text="${s.title}">步骤</div>
+                                        <i class="bi bi-arrow-right text-primary"></i>
+                                    </div>
+                                    <div class="text-muted small mb-2" th:text="${s.description}">步骤说明</div>
+                                    <span class="badge bg-white text-primary border">查看提交</span>
+                                </div>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+</div>
+</body>
+</html>

@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout/base :: layout(${pageTitle}, ~{::content})}">
+<body>
+<div th:fragment="content" class="row justify-content-center">
+    <div class="col-lg-9">
+        <div class="d-flex align-items-center justify-content-between mb-3">
+            <h1 class="h4 mb-0">创建任务</h1>
+            <a class="btn btn-outline-secondary btn-sm" href="/teacher/tasks">返回</a>
+        </div>
+
+        <div class="alert alert-info border-0 rounded-4" th:if="${currentProgress != null}">
+            当前进行中的课程：<strong th:text="${currentProgress.courseTitle}">课程</strong>
+            <span th:if="${currentProgress.lessonTitle != null}"> / <span th:text="${currentProgress.lessonTitle}">课时</span></span>
+            ，新建任务会自动归到这门课程下。
+        </div>
+        <div class="alert alert-warning border-0 rounded-4" th:if="${currentProgress == null}">
+            当前没有进行中的课程，新建任务不会绑定课程。请先在课程详情中开始课程。
+        </div>
+
+        <div class="soft-card p-3 p-md-4">
+            <form method="post" action="/teacher/tasks" th:object="${form}">
+                <div class="row g-3">
+                    <div class="col-md-8">
+                        <label class="form-label">标题</label>
+                        <input class="form-control" th:field="*{title}" maxlength="200">
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label">任务板块</label>
+                        <select class="form-select" th:field="*{phase}">
+                            <option value="PRE_CLASS">课前</option>
+                            <option value="IN_CLASS">课中</option>
+                            <option value="POST_CLASS">课后</option>
+                        </select>
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label">描述（可选）</label>
+                        <textarea class="form-control" th:field="*{description}" rows="4" maxlength="5000"></textarea>
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label">要求/评分维度（可选）</label>
+                        <textarea class="form-control" th:field="*{requirementsText}" rows="5" maxlength="5000"></textarea>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">提交类型要求</label>
+                        <select class="form-select" th:field="*{submissionRequirement}">
+                            <option th:each="r : ${requirements}" th:value="${r}" th:text="${r.name() == 'TEXT' ? '文字心得' : r.name() == 'IMAGE' ? '图片' : r.name() == 'VIDEO' ? '视频' : r.name() == 'IMAGE_TEXT' ? '图片 + 文字' : r.name() == 'VIDEO_TEXT' ? '视频 + 文字' : r.name() == 'IMAGE_VIDEO_TEXT' ? '图片 + 视频 + 文字' : r.name()}"></option>
+                        </select>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">截止时间（可选）</label>
+                        <input class="form-control" type="datetime-local" th:field="*{deadline}">
+                    </div>
+                </div>
+                <div class="mt-4 d-flex justify-content-between align-items-center">
+                    <div class="text-muted small">保存后状态默认为草稿，可再发布</div>
+                    <button class="btn btn-tp-primary rounded-pill px-4" type="submit">保存草稿</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+</body>
+</html>

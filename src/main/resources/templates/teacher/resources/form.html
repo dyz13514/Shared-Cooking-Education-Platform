@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout/base :: layout(${pageTitle}, ~{::content})}">
+<body>
+<div th:fragment="content" class="row justify-content-center">
+    <div class="col-lg-8">
+        <div class="d-flex align-items-center justify-content-between mb-3">
+            <h1 class="h4 mb-0">上传资源</h1>
+            <a class="btn btn-outline-secondary btn-sm" href="/teacher/resources">返回</a>
+        </div>
+
+        <div class="bg-white border rounded-4 shadow-sm p-3 p-md-4">
+            <form method="post" action="/teacher/resources" enctype="multipart/form-data" th:object="${form}">
+                <div th:if="${#fields.hasGlobalErrors()}" class="alert alert-danger rounded-4" role="alert">
+                    <div th:each="err : ${#fields.globalErrors()}" th:text="${err}">上传失败</div>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">标题</label>
+                    <input class="form-control" th:field="*{title}" maxlength="200">
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">分类（可选）</label>
+                    <input class="form-control" th:field="*{categoryName}" maxlength="100" placeholder="例如：菜谱课件 / 实操视频 / 素材">
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">所属课程（可选）</label>
+                    <select class="form-select" th:field="*{courseId}">
+                        <option value="">不绑定课程</option>
+                        <option th:each="c : ${courses}" th:value="${c.id}" th:text="${c.title}">课程</option>
+                    </select>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">所属课时（可选）</label>
+                    <select class="form-select" th:field="*{lessonId}">
+                        <option value="">不绑定课时</option>
+                        <option th:each="l : ${lessons}" th:value="${l.id}" th:text="${'课时' + l.sortOrder + '：' + l.title}">课时</option>
+                    </select>
+                    <div class="form-text">默认会带入当前进行中的课时，如需更换可返回资源列表按课程筛选后编辑。</div>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">可见范围</label>
+                    <select class="form-select" th:field="*{visibility}">
+                        <option th:each="v : ${visibilities}" th:value="${v}" th:text="${v.name() == 'ALL' ? '全部可见' : (v.name() == 'TEACHER' ? '仅教师' : '仅学生')}"></option>
+                    </select>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">简介（可选）</label>
+                    <textarea class="form-control" th:field="*{description}" rows="4" maxlength="2000"></textarea>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">文件</label>
+                    <input class="form-control" name="file" type="file" required accept=".pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.txt,.csv,.jpg,.jpeg,.png,.gif,.webp,.mp4,.mov,.avi,.zip,.rar">
+                    <div class="form-text">支持 PDF、Word、PPT、Excel、TXT、CSV、图片、视频和 ZIP/RAR 压缩包，单个文件最大 200MB。</div>
+                </div>
+                <button class="btn btn-primary" type="submit">上传</button>
+            </form>
+        </div>
+    </div>
+</div>
+</body>
+</html>

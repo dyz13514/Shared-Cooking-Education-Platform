@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout/base :: layout('403 - 无权限', ~{::content})}">
+<body>
+<div th:fragment="content" class="bg-white border rounded-4 shadow-sm p-4">
+    <h1 class="h4 mb-2">403 无权限</h1>
+    <p class="text-muted mb-3">你没有权限访问此页面，请使用正确的账号角色登录。</p>
+    <a class="btn btn-primary" href="/login">去登录</a>
+    <a class="btn btn-outline-secondary" href="/">返回首页</a>
+</div>
+</body>
+</html>
+

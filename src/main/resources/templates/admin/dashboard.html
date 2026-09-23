@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout/base :: layout(${pageTitle}, ~{::content})}">
+<body>
+<div th:fragment="content">
+    <section class="page-hero">
+        <div class="d-flex flex-wrap justify-content-between align-items-start gap-3">
+            <div>
+                <div class="page-kicker">管理员后台</div>
+                <h1 class="page-title mb-0">系统管理工作台</h1>
+                <p class="page-subtitle mb-0">统一维护账号、课程和平台资源。</p>
+            </div>
+            <span class="pill-status"><i class="bi bi-shield-check"></i>ADMIN</span>
+        </div>
+    </section>
+
+    <section class="metric-grid mt-3">
+        <a class="metric-card text-decoration-none" href="/admin/users">
+            <div class="metric-label text-dark">用户账号</div>
+            <div class="metric-value text-primary" th:text="${userCount}">0</div>
+            <div class="text-muted small mt-1">教师 / 学生 / 管理员</div>
+        </a>
+        <a class="metric-card text-decoration-none" href="/admin/courses">
+            <div class="metric-label text-dark">课程数量</div>
+            <div class="metric-value text-success" th:text="${courseCount}">0</div>
+            <div class="text-muted small mt-1">课程结构与负责人</div>
+        </a>
+        <a class="metric-card text-decoration-none" href="/teacher/tasks">
+            <div class="metric-label text-dark">任务数量</div>
+            <div class="metric-value text-info" th:text="${taskCount}">0</div>
+            <div class="text-muted small mt-1">教学任务</div>
+        </a>
+        <a class="metric-card text-decoration-none" href="/admin/resources">
+            <div class="metric-label text-dark">资源数量</div>
+            <div class="metric-value text-primary" th:text="${resourceCount}">0</div>
+            <div class="text-muted small mt-1">平台资源</div>
+        </a>
+    </section>
+</div>
+</body>
+</html>

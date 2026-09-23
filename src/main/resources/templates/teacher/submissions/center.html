@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org"
+      th:replace="~{layout/base :: layout(${pageTitle}, ~{::content})}">
+<body>
+<div th:fragment="content">
+    <section class="page-hero mb-3">
+        <div class="d-flex align-items-center justify-content-between flex-wrap gap-3">
+            <div>
+                <div class="page-kicker">统一待看 / 待批改内容</div>
+                <h1 class="page-title mb-1">批改中心</h1>
+                <p class="page-subtitle mb-0" th:if="${currentProgress != null}">
+                    当前优先显示：<strong th:text="${currentProgress.courseTitle}">课程</strong>
+                    <span th:if="${currentProgress.lessonTitle != null}"> / <span th:text="${currentProgress.lessonTitle}">课时</span></span>
+                </p>
+                <p class="page-subtitle mb-0" th:if="${currentProgress == null}">当前没有进行中的课程，显示该教师全部任务与课程步骤提交。</p>
+            </div>
+            <div class="d-flex gap-2 flex-wrap">
+                <a class="btn btn-outline-primary rounded-pill px-4" th:if="${activeCourseId != null}" th:href="@{/teacher/courses/{id}/submissions(id=${activeCourseId})}">查看当前课程提交</a>
+                <a class="btn btn-tp-soft rounded-pill px-4" href="/teacher/tasks">任务管理</a>
+            </div>
+        </div>
+    </section>
+
+    <section class="center-table-card mb-3">
+        <form method="get" action="/teacher/submissions" class="row g-2 align-items-end">
+            <div class="col-md-4">
+                <label class="form-label text-muted small">课程范围</label>
+                <select class="form-select" name="courseId">
+                    <option value="0" th:selected="${courseId == 0}">全部课程</option>
+                    <option th:each="c : ${courses}" th:value="${c.id}" th:text="${c.title}" th:selected="${courseId == c.id}">课程</option>
+                </select>
+            </div>
+            <div class="col-md-4">
+                <label class="form-label text-muted small">课时范围</label>
+                <select class="form-select" name="lessonId">
+                    <option value="0" th:selected="${lessonId == 0}">全部课时</option>
+                    <option th:each="l : ${lessons}" th:value="${l.id}" th:text="${'课时' + l.sortOrder + '：' + l.title}" th:selected="${lessonId == l.id}">课时</option>
+                </select>
+            </div>
+            <div class="col-md-4 d-flex gap-2">
+                <button class="btn btn-outline-primary rounded-pill px-4" type="submit">筛选</button>
+                <a class="btn btn-outline-secondary rounded-pill px-4" href="/teacher/submissions">回到当前课程</a>
+            </div>
+        </form>
+    </section>
+
+    <section class="row g-3 mb-3">
+        <div class="col-md-3 col-6">
+            <div class="center-stat-card">
+                <div class="stat-label">教师任务提交数</div>
+                <div class="stat-value text-primary" th:text="${taskSubmissionCount}">0</div>
+            </div>
+        </div>
+        <div class="col-md-3 col-6">
+            <div class="center-stat-card">
+                <div class="stat-label">课程步骤提交数</div>
+                <div class="stat-value text-info" th:text="${stepSubmissionCount}">0</div>
+            </div>
+        </div>
+        <div class="col-md-3 col-6">
+            <div class="center-stat-card">
+                <div class="stat-label">待批改数</div>
+                <div class="stat-value text-warning" th:text="${pendingCount}">0</div>
+            </div>
+        </div>
+        <div class="col-md-3 col-6">
+            <div class="center-stat-card">
+                <div class="stat-label">已批改数</div>
+                <div class="stat-value text-success" th:text="${reviewedCount}">0</div>
+            </div>
+        </div>
+    </section>
+
+    <section class="soft-card mb-3">
+        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+            <div>
+                <h3 class="mb-0">教师布置任务</h3>
+                <div class="text-muted small">来自任务中心发布的课前 / 课中 / 课后任务提交。</div>
+            </div>
+            <span class="badge bg-tp-soft text-tp-primary" th:text="${taskSubmissionCount + ' 条提交'}">0 条提交</span>
+        </div>
+
+        <div th:if="${taskSubmissions == null or taskSubmissions.isEmpty()}" class="center-empty">暂无教师任务提交</div>
+
+        <div class="table-responsive" th:if="${taskSubmissions != null and !taskSubmissions.isEmpty()}">
+            <table class="table align-middle mb-0">
+                <thead>
+                <tr>
+                    <th>所属课程</th>
+                    <th>任务标题</th>
+                    <th>学生</th>
+                    <th>提交时间</th>
+                    <th>状态</th>
+                    <th class="text-end">查看 / 批改</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr th:each="s : ${taskSubmissions}">
+                    <td th:text="${taskMap[s.taskId] != null and taskMap[s.taskId].courseTitle != null ? taskMap[s.taskId].courseTitle : '未绑定课程'}">课程</td>
+                    <td class="fw-semibold" th:text="${taskMap[s.taskId] != null ? taskMap[s.taskId].title : '任务 #' + s.taskId}">任务标题</td>
+                    <td th:text="${studentMap[s.studentId] != null ? (studentMap[s.studentId].realName != null ? studentMap[s.studentId].realName : studentMap[s.studentId].username) : '学生 #' + s.studentId}">学生</td>
+                    <td class="text-muted small" th:text="${s.submittedAt != null ? #temporals.format(s.submittedAt, 'yyyy-MM-dd HH:mm') : #temporals.format(s.createdAt, 'yyyy-MM-dd HH:mm')}">时间</td>
+                    <td>
+                        <span class="badge rounded-pill" th:classappend="${s.status.name() == 'GRADED' ? ' bg-success text-white' : ' bg-warning text-dark'}" th:text="${s.status.name() == 'GRADED' ? '已批改' : '待批改'}">状态</span>
+                    </td>
+                    <td class="text-end">
+                        <a class="btn btn-outline-primary btn-sm rounded-pill px-3" th:href="@{/teacher/submissions/{id}(id=${s.id})}">查看 / 批改</a>
+                    </td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+    </section>
+
+    <section class="center-table-card">
+        <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-3">
+            <div>
+                <h3 class="mb-0">课程固定任务</h3>
+                <div class="text-muted small">来自课程结构中固定步骤的学生提交记录。</div>
+            </div>
+            <span class="badge bg-tp-soft text-tp-primary" th:text="${stepSubmissionCount + ' 条提交'}">0 条提交</span>
+        </div>
+
+        <div th:if="${stepSubmissions == null or stepSubmissions.isEmpty()}" class="center-empty">暂无课程步骤提交</div>
+
+        <div class="table-responsive" th:if="${stepSubmissions != null and !stepSubmissions.isEmpty()}">
+            <table class="table align-middle mb-0">
+                <thead>
+                <tr>
+                    <th>课程</th>
+                    <th>课时</th>
+                    <th>步骤</th>
+                    <th>学生</th>
+                    <th>提交时间</th>
+                    <th>状态</th>
+                    <th class="text-end">查看 / 批改</th>
+                </tr>
+                </thead>
+                <tbody>
+                <tr th:each="s : ${stepSubmissions}">
+                    <td class="fw-semibold" th:text="${courseMap[s.courseId] != null ? courseMap[s.courseId].title : '课程 #' + s.courseId}">课程</td>
+                    <td th:text="${lessonMap[s.lessonId] != null ? lessonMap[s.lessonId].title : '课时 #' + s.lessonId}">课时</td>
+                    <td th:text="${stepMap[s.stepId] != null ? stepMap[s.stepId].title : '步骤 #' + s.stepId}">步骤</td>
+                    <td th:text="${studentMap[s.studentId] != null ? (studentMap[s.studentId].realName != null ? studentMap[s.studentId].realName : studentMap[s.studentId].username) : '学生 #' + s.studentId}">学生</td>
+                    <td class="text-muted small" th:text="${s.submittedAt != null ? #temporals.format(s.submittedAt, 'yyyy-MM-dd HH:mm') : #temporals.format(s.createdAt, 'yyyy-MM-dd HH:mm')}">时间</td>
+                    <td>
+                        <span class="badge rounded-pill" th:classappend="${s.status.name() == 'REVIEWED' ? ' bg-success text-white' : ' bg-warning text-dark'}" th:text="${s.status.name() == 'REVIEWED' ? '已批改' : '待批改'}">状态</span>
+                    </td>
+                    <td class="text-end">
+                        <a class="btn btn-outline-primary btn-sm rounded-pill px-3" th:href="@{/teacher/courses/steps/{stepId}/submissions(stepId=${s.stepId})}">查看 / 批改</a>
+                    </td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+    </section>
+</div>
+</body>
+</html>
